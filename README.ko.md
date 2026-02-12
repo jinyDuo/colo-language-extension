@@ -9,7 +9,7 @@
 
 ## ✨ 주요 기능
 
-- 📊 **구글 스프레드시트 연동**: Google Sheets API 또는 CSV URL을 통해 다국어 데이터 가져오기
+- 📊 **구글 스프레드시트 연동**: **서비스 계정 JSON**, Google Sheets API 키, **JSON API URL**, 또는 CSV URL로 데이터 가져오기
 - 🔍 **Hover 기능**: 코드에서 `WD`, `ST`, `CD`로 시작하는 키에 마우스를 올리면 다국어 정보 표시
 - 🏷️ **인라인 번역(인레이 힌트)**: 호버 없이 코드 옆에 번역을 바로 표시
 - 💾 **로컬 캐싱**: 데이터를 로컬 스토리지에 저장하여 오프라인에서도 사용 가능
@@ -60,49 +60,72 @@ VS Code에서 `Ctrl + ,` (또는 `Cmd + ,` on Mac)를 눌러 설정을 열고, �
 
 인라인 힌트가 보이려면 VS Code 설정에서 **Editor: Inlay Hints** 가 `on` 인지 확인하세요.
 
-#### 방법 1: Google Sheets API 사용 (권장)
+**데이터 소스 우선순위:** 서비스 계정 JSON → API 키 → JSON API URL → CSV URL (먼저 설정된 것이 사용됨)
+
+#### 방법 1: 서비스 계정 JSON (우선순위 1, 비공개 시트 권장)
+
+1. **서비스 계정 만들기**
+   - [Google Cloud Console](https://console.cloud.google.com/) → IAM 및 관리자 → 서비스 계정 → 서비스 계정 만들기
+   - 키(JSON) 생성 후 파일 다운로드
+
+2. **스프레드시트 공유**: 서비스 계정 이메일(예: `xxx@project.iam.gserviceaccount.com`)을 뷰어로 추가
+
+3. **VS Code 설정**
+   - **Sheet Service Account Json**: JSON 키 파일 **내용 전체**를 붙여넣기 (파일 경로가 아님)
+   - **Sheet Id** 또는 **Sheet Url**: 스프레드시트 ID 또는 전체 URL
+   - **All Sheet Names** / **Target Sheet Names**: 가져올 시트 선택
+
+#### 방법 2: Google Sheets API 키 (우선순위 2)
 
 1. **API 키 발급**
-   - [Google Cloud Console](https://console.cloud.google.com/) 접속
-   - 프로젝트 생성 → API 및 서비스 > 라이브러리 → "Google Sheets API" 활성화
+   - [Google Cloud Console](https://console.cloud.google.com/) → API 및 서비스 > 라이브러리 → "Google Sheets API" 활성화
    - API 및 서비스 > 사용자 인증 정보 > API 키 만들기
 
 2. **시트 공유 설정** ⚠️ 필수
-   - 구글 스프레드시트 우측 상단 **공유** 버튼 클릭
-   - **링크가 있는 모든 사용자** 선택, **뷰어** 권한 설정
+   - 구글 스프레드시트 → **공유** → **링크가 있는 모든 사용자** → **뷰어**
 
 3. **VS Code 설정**
-   - **Sheet Api Key**: 발급받은 API 키 입력
-   - **Sheet Id**: 스프레드시트 URL에서 ID 추출 (또는 전체 URL 입력 시 자동 추출)
-   - **All Sheet Names**: 모든 시트 가져오기 (기본값: 체크됨)
-   - **Target Sheet Names**: 지정 시트만 가져오기 (예: `WD,ST,CD`)
+   - **Sheet Api Key**: API 키 입력
+   - **Sheet Id**: 스프레드시트 ID 또는 URL
+   - **All Sheet Names** / **Target Sheet Names**: 필요에 따라 설정
 
-#### 방법 2: CSV URL 사용
+#### 방법 3: JSON API URL (우선순위 2 대안)
+
+- JSON을 반환하는 URL 사용 (자체 API 또는 게시된 JSON).
+- **Sheet Json Url**: URL 입력. 응답은 배열 `[{ "key", "ko", "en", ... }]` 또는 객체 `{ "WD001": { "ko": "...", "en": "..." }, ... }` 형태여야 함.
+
+#### 방법 4: CSV URL (우선순위 3)
 
 1. 구글 스프레드시트에서 **파일 > 공유 > 웹에 게시** → CSV 형식 선택
-2. 생성된 URL을 **Sheet Url**에 입력
+2. **Sheet Url**: 생성된 CSV URL 입력
 
-> 💡 **우선순위**: API 키가 있으면 API 사용, 없으면 CSV URL 사용
+> 💡 **우선순위**: 서비스 계정 JSON → API 키 또는 JSON URL → CSV URL. 먼저 설정한 항목이 사용됩니다.
 
 ### 설정 방법 비교
 
 ```mermaid
 flowchart TD
-    A[설정 시작] --> B{API 키 있음?}
-    B -->|있음| C[방법 1: Google Sheets API]
-    B -->|없음| D[방법 2: CSV URL]
+    A[설정 시작] --> B{서비스 계정 JSON?}
+    B -->|있음| C[방법 1: 서비스 계정 JSON]
+    B -->|없음| F{API 키?}
+    F -->|있음| D[방법 2: Google Sheets API]
+    F -->|없음| G{JSON URL?}
+    G -->|있음| H[방법 3: JSON API URL]
+    G -->|없음| I[방법 4: CSV URL]
     
-    C --> C1[1. Google Cloud Console<br/>API 키 발급]
-    C1 --> C2[2. 시트 공유 설정<br/>링크가 있는 모든 사용자]
-    C2 --> C3[3. VS Code 설정<br/>sheetApiKey, sheetId 입력]
-    C3 --> E[동기화 실행]
-    
-    D --> D1[1. 구글 시트<br/>웹에 게시 CSV 형식]
-    D1 --> D2[2. VS Code 설정<br/>sheetUrl 입력]
-    D2 --> E
+    C --> C1[Sheet Service Account Json에<br/>JSON 키 전체 붙여넣기]
+    C1 --> E[동기화 실행]
+    D --> D1[sheetApiKey, sheetId 입력]
+    D1 --> E
+    H --> H1[Sheet Json Url 입력]
+    H1 --> E
+    I --> I1[Sheet Url - CSV 입력]
+    I1 --> E
     
     style C fill:#c8e6c9,color:#000000
-    style D fill:#ffe0b2,color:#000000
+    style D fill:#b3e5fc,color:#000000
+    style H fill:#e1bee7,color:#000000
+    style I fill:#ffe0b2,color:#000000
     style E fill:#b3e5fc,color:#000000
 ```
 
@@ -117,24 +140,27 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A[명령 실행<br/>Ctrl+Shift+P] --> B{API 키 있음?}
-    B -->|있음| C[Google Sheets API<br/>데이터 가져오기]
-    B -->|없음| D[CSV URL<br/>데이터 가져오기]
+    A[명령 실행<br/>Ctrl+Shift+P] --> B{데이터 소스?}
+    B -->|서비스 계정 JSON| C[Sheets API - OAuth]
+    B -->|API 키| C
+    B -->|JSON URL| D[JSON API<br/>데이터 가져오기]
+    B -->|CSV URL| E2[CSV URL<br/>데이터 가져오기]
     
-    C --> C1{allSheetNames<br/>체크됨?}
+    C --> C1{allSheetNames?}
     C1 -->|예| C2[모든 시트 가져오기]
-    C1 -->|아니오| C3[targetSheetNames<br/>지정 시트만 가져오기]
-    C2 --> E[CSV 파싱]
+    C1 -->|아니오| C3[targetSheetNames]
+    C2 --> E[파싱 및 저장]
     C3 --> E
     D --> E
+    E2 --> E
     
-    E --> F[로컬 스토리지<br/>저장]
-    F --> G[동기화 완료<br/>메시지 표시]
+    E --> F[로컬 스토리지]
+    F --> G[동기화 완료]
     
     style A fill:#b3e5fc,color:#000000
     style C fill:#c8e6c9,color:#000000
-    style D fill:#ffe0b2,color:#000000
-    style F fill:#e1bee7,color:#000000
+    style D fill:#e1bee7,color:#000000
+    style E2 fill:#ffe0b2,color:#000000
     style G fill:#c8e6c9,color:#000000
 ```
 

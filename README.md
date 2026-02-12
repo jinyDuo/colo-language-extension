@@ -14,7 +14,7 @@ A VS Code extension that fetches multilingual data from Google Sheets and displa
 
 ## ✨ Features
 
-- 📊 **Google Sheets Integration**: Fetch multilingual data via Google Sheets API or CSV URL
+- 📊 **Google Sheets Integration**: Fetch data via **Service Account JSON**, Google Sheets API key, **JSON API URL**, or CSV URL
 - 🔍 **Hover Feature**: Hover over keys starting with `WD`, `ST`, `CD` in your code to see multilingual information
 - 🏷️ **Inline Translation (Inlay Hints)**: Show translations inline next to keys and translation calls (no hover needed)
 - 💾 **Local Caching**: Data is stored in local storage for offline use
@@ -65,49 +65,72 @@ Open VS Code settings with `Ctrl + ,` (or `Cmd + ,` on Mac) and search for "Shee
 
 Also ensure **Editor: Inlay Hints** is set to `on` in VS Code settings so inline hints are visible.
 
-#### Method 1: Using Google Sheets API (Recommended)
+**Data source priority:** Service Account JSON → API Key → JSON API URL → CSV URL (first available is used).
+
+#### Method 1: Service Account JSON (Priority 1, recommended for private sheets)
+
+1. **Create a Service Account**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/) → IAM & Admin → Service Accounts → Create Service Account
+   - Create a key (JSON) and download the file
+
+2. **Share the spreadsheet** with the service account email (e.g. `xxx@project.iam.gserviceaccount.com`) as Viewer
+
+3. **VS Code Settings**
+   - **Sheet Service Account Json**: Paste the **entire contents** of the JSON key file (not the file path)
+   - **Sheet Id** or **Sheet Url**: Spreadsheet ID or full URL
+   - **All Sheet Names** / **Target Sheet Names**: Choose which sheets to fetch
+
+#### Method 2: Google Sheets API Key (Priority 2)
 
 1. **Get API Key**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a project → APIs & Services > Library → Enable "Google Sheets API"
+   - Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services > Library → Enable "Google Sheets API"
    - APIs & Services > Credentials > Create API Key
 
 2. **Share Sheet Settings** ⚠️ Required
-   - Open your Google Spreadsheet and click the **Share** button (top right)
-   - Select **Anyone with the link** and set permission to **Viewer**
+   - Open your Google Spreadsheet → **Share** → **Anyone with the link** → **Viewer**
 
 3. **VS Code Settings**
    - **Sheet Api Key**: Enter your API key
-   - **Sheet Id**: Extract ID from spreadsheet URL (or enter full URL for auto-extraction)
-   - **All Sheet Names**: Fetch all sheets (default: checked)
-   - **Target Sheet Names**: Fetch only specified sheets (e.g., `WD,ST,CD`)
+   - **Sheet Id**: Spreadsheet ID or full URL
+   - **All Sheet Names** / **Target Sheet Names**: As needed
 
-#### Method 2: Using CSV URL
+#### Method 3: JSON API URL (Priority 2 alternative)
+
+- Use a URL that returns JSON (e.g. your own API or published JSON).
+- **Sheet Json Url**: Enter the URL. Response must be an array `[{ "key", "ko", "en", ... }]` or an object `{ "WD001": { "ko": "...", "en": "..." }, ... }`.
+
+#### Method 4: CSV URL (Priority 3)
 
 1. In Google Spreadsheet, go to **File > Share > Publish to web** → Select CSV format
-2. Enter the generated URL in **Sheet Url**
+2. **Sheet Url**: Enter the generated CSV URL
 
-> 💡 **Priority**: If API key exists, API is used; otherwise, CSV URL is used.
+> 💡 **Priority**: Service Account JSON → API Key or JSON URL → CSV URL. The first one you configure is used.
 
 ### Configuration Method Comparison
 
 ```mermaid
 flowchart TD
-    A[Start Configuration] --> B{API Key Available?}
-    B -->|Yes| C[Method 1: Google Sheets API]
-    B -->|No| D[Method 2: CSV URL]
+    A[Start Configuration] --> B{Service Account JSON?}
+    B -->|Yes| C[Method 1: Service Account JSON]
+    B -->|No| F{API Key?}
+    F -->|Yes| D[Method 2: Google Sheets API]
+    F -->|No| G{JSON URL?}
+    G -->|Yes| H[Method 3: JSON API URL]
+    G -->|No| I[Method 4: CSV URL]
     
-    C --> C1[1. Google Cloud Console<br/>Get API Key]
-    C1 --> C2[2. Share Sheet<br/>Anyone with the link]
-    C2 --> C3[3. VS Code Settings<br/>Enter sheetApiKey, sheetId]
-    C3 --> E[Run Sync]
-    
-    D --> D1[1. Google Sheet<br/>Publish to web as CSV]
-    D1 --> D2[2. VS Code Settings<br/>Enter sheetUrl]
-    D2 --> E
+    C --> C1[Paste full JSON key in<br/>Sheet Service Account Json]
+    C1 --> E[Run Sync]
+    D --> D1[Enter sheetApiKey, sheetId]
+    D1 --> E
+    H --> H1[Enter Sheet Json Url]
+    H1 --> E
+    I --> I1[Enter Sheet Url - CSV]
+    I1 --> E
     
     style C fill:#c8e6c9,color:#000000
-    style D fill:#ffe0b2,color:#000000
+    style D fill:#b3e5fc,color:#000000
+    style H fill:#e1bee7,color:#000000
+    style I fill:#ffe0b2,color:#000000
     style E fill:#b3e5fc,color:#000000
 ```
 
@@ -122,24 +145,27 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    A[Run Command<br/>Ctrl+Shift+P] --> B{API Key Available?}
-    B -->|Yes| C[Google Sheets API<br/>Fetch Data]
-    B -->|No| D[CSV URL<br/>Fetch Data]
+    A[Run Command<br/>Ctrl+Shift+P] --> B{Data source?}
+    B -->|Service Account JSON| C[Sheets API - OAuth]
+    B -->|API Key| C
+    B -->|JSON URL| D[JSON API<br/>Fetch Data]
+    B -->|CSV URL| E2[CSV URL<br/>Fetch Data]
     
-    C --> C1{allSheetNames<br/>Checked?}
+    C --> C1{allSheetNames?}
     C1 -->|Yes| C2[Fetch All Sheets]
-    C1 -->|No| C3[targetSheetNames<br/>Fetch Specified Sheets Only]
-    C2 --> E[Parse CSV]
+    C1 -->|No| C3[targetSheetNames]
+    C2 --> E[Parse & Save]
     C3 --> E
     D --> E
+    E2 --> E
     
-    E --> F[Local Storage<br/>Save]
-    F --> G[Sync Complete<br/>Show Message]
+    E --> F[Local Storage]
+    F --> G[Sync Complete]
     
     style A fill:#b3e5fc,color:#000000
     style C fill:#c8e6c9,color:#000000
-    style D fill:#ffe0b2,color:#000000
-    style F fill:#e1bee7,color:#000000
+    style D fill:#e1bee7,color:#000000
+    style E2 fill:#ffe0b2,color:#000000
     style G fill:#c8e6c9,color:#000000
 ```
 
