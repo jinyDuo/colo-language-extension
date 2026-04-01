@@ -2,12 +2,12 @@ import * as vscode from 'vscode';
 import type { LanguageDictionary } from '../../shared/language-dictionary/types';
 import {
 	buildExportFileNameFromSheetPrefix,
+	mergeDictionaryFromPrefixBuckets,
 	splitDictionaryByConfiguredSheetPrefixes
 } from '../../shared/language-dictionary/utils/languageDictionaryExportBuckets';
 import { parseWorkspaceExportPathSegments } from '../../shared/workspace-export/utils/workspaceExportPath';
 
 const ALL_LANGUAGE_FILE_NAME = 'all_language.json';
-const OTHER_LANGUAGE_FILE_NAME = 'other_lang.json';
 
 const CONFIG_EXPORT_PATH_KEY = 'workspaceExportJsonPath';
 
@@ -83,10 +83,19 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 	}
 
 	const targetSheetNamesConfig = config.get<string>('targetSheetNames', '');
-	const { prefixBucketItems, otherDictionary } = splitDictionaryByConfiguredSheetPrefixes(
+	const { prefixBucketItems } = splitDictionaryByConfiguredSheetPrefixes(
 		languageDictionary,
 		targetSheetNamesConfig
 	);
+	const allLanguageDictionary = mergeDictionaryFromPrefixBuckets(prefixBucketItems);
+	const matchedKeyCount = Object.keys(allLanguageDictionary).length;
+
+	if (matchedKeyCount === 0) {
+		vscode.window.showWarningMessage(
+			'설정한 targetSheetNames 접두와 일치하는 키가 없습니다. 접두를 확인한 뒤 다시 시도하세요.'
+		);
+		return;
+	}
 
 	const workspaceRootUri = workspaceFolders[0].uri;
 
@@ -104,8 +113,8 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 	const textEncoder = new TextEncoder();
 	const writtenSummaryItems: string[] = [];
 
-	await writeJsonFile(exportDirectoryUri, ALL_LANGUAGE_FILE_NAME, languageDictionary, textEncoder);
-	writtenSummaryItems.push(`${exportPathDisplay}/${ALL_LANGUAGE_FILE_NAME} (${keyCount}개)`);
+	await writeJsonFile(exportDirectoryUri, ALL_LANGUAGE_FILE_NAME, allLanguageDictionary, textEncoder);
+	writtenSummaryItems.push(`${exportPathDisplay}/${ALL_LANGUAGE_FILE_NAME} (${matchedKeyCount}개)`);
 
 	for (const { sheetPrefix, dictionary } of prefixBucketItems) {
 		const partialKeyCount = Object.keys(dictionary).length;
@@ -115,12 +124,6 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 		const fileName = buildExportFileNameFromSheetPrefix(sheetPrefix);
 		await writeJsonFile(exportDirectoryUri, fileName, dictionary, textEncoder);
 		writtenSummaryItems.push(`${exportPathDisplay}/${fileName} (${partialKeyCount}개)`);
-	}
-
-	const otherKeyCount = Object.keys(otherDictionary).length;
-	if (otherKeyCount > 0) {
-		await writeJsonFile(exportDirectoryUri, OTHER_LANGUAGE_FILE_NAME, otherDictionary, textEncoder);
-		writtenSummaryItems.push(`${exportPathDisplay}/${OTHER_LANGUAGE_FILE_NAME} (${otherKeyCount}개)`);
 	}
 
 	const successMessage = `언어 데이터를 저장했습니다: ${writtenSummaryItems.join(', ')}`;

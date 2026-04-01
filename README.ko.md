@@ -20,7 +20,7 @@
 - 💾 **로컬 캐싱**: 데이터를 로컬 스토리지에 저장하여 오프라인에서도 사용 가능
 - 🔄 **수동 동기화**: 원할 때만 최신 데이터로 업데이트
 - 📝 **다중 시트 지원**: 여러 시트(WD, ST, CD 등)를 한 번에 가져오기
-- 📤 **워크스페이스 JSON 보내기**: **`workspaceExportJsonPath`**(필수) 아래에 **`all_language.json`**(전체), **`targetSheetNames`**(쉼표 구분) 기준 `{접두사}_lang.json`, 매칭 안 되는 키는 **`other_lang.json`**
+- 📤 **워크스페이스 JSON 보내기**: **`workspaceExportJsonPath`**(필수) 아래에 **`targetSheetNames`**에 맞는 키만 **`all_language.json`** 및 **`{접두사}_lang.json`**으로 저장. 접두에 안 맞는 키는 파일로 보내지 않음
 
 ### 전체 워크플로우
 
@@ -144,7 +144,7 @@ flowchart TD
 | 명령 | 설명 |
 |------|------|
 | **Sheet Language Global Helper: Sheet Connect Sync** | 설정한 소스(서비스 계정 JSON, API 키, JSON URL, CSV URL)에서 데이터를 가져와 확장 로컬 스토리지에 저장합니다. Hover·인레이 힌트에 사용됩니다. |
-| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | **`workspaceExportJsonPath`** 아래에 **`all_language.json`**(전체), **`targetSheetNames`**(쉼표 구분, 비어 있으면 기본 `WD,ST,CD`)에 맞춘 **`{접두사}_lang.json`**, 그 외 키는 **`other_lang.json`**. 접두사가 겹치면 **긴 쪽**이 우선. **`workspaceExportJsonPath` 비우면 오류.** 먼저 **Sync** 실행. |
+| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | **`workspaceExportJsonPath`** 아래에 **`targetSheetNames`**(쉼표 구분, 비어 있으면 기본 `WD,ST,CD`) 접두에 맞는 키만 **`all_language.json`**(합집합)과 **`{접두사}_lang.json`**으로 저장. 매칭되는 키가 하나도 없으면 경고 후 저장하지 않음. 접두가 겹치면 **긴 쪽** 우선. **`workspaceExportJsonPath` 비우면 오류.** 먼저 **Sync** 실행. |
 
 ### 데이터 동기화
 
@@ -191,9 +191,8 @@ flowchart LR
 3. **`workspaceExportJsonPath`** 를 설정합니다 (예: `language`). **비우면 보내기 오류.** `..` 불가.
 4. 필요하면 **`targetSheetNames`**(대상 시트 이름 목록, 쉼표 구분)을 맞춥니다. 보내기 시 이 목록의 각 접두사마다 `{소문자접두사}_lang.json`이 생깁니다 (예: `WD,ST,CD` → `wd_lang.json` …). 키가 없는 접두사는 파일을 만들지 않습니다.
 5. **Export synced dictionary to workspace JSON** 실행 — 경로 폴더가 없으면 생성 후:
-   - **`all_language.json`** — 동기화된 사전 전체 (항상)
-   - **`{접두사}_lang.json`** — `targetSheetNames` 각 항목과 매칭되는 키만 (해당 키가 있을 때만 파일 생성)
-   - **`other_lang.json`** — 어떤 설정 접두사에도 안 맞는 키 (있을 때만)
+   - **`all_language.json`** — `targetSheetNames` 접두에 맞는 키만 모은 사전 (접두별 파일과 동일 키 집합의 합)
+   - **`{접두사}_lang.json`** — 각 접두와 매칭되는 키만 (해당 키가 있을 때만 파일 생성)
 
 **JSON 형태** (각 파일은 동일 구조: 코드 키 → 언어 코드 → 문자열):
 

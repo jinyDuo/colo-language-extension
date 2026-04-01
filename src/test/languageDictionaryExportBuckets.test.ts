@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import {
 	buildExportFileNameFromSheetPrefix,
+	mergeDictionaryFromPrefixBuckets,
 	splitDictionaryByConfiguredSheetPrefixes
 } from '../shared/language-dictionary/utils/languageDictionaryExportBuckets';
 
@@ -35,6 +36,19 @@ suite('languageDictionaryExportBuckets', () => {
 		assert.ok(cdBucket);
 		assert.deepStrictEqual(cdBucket?.dictionary, dict);
 		assert.deepStrictEqual(otherDictionary, {});
+	});
+
+	test('mergeDictionaryFromPrefixBuckets는 접두 버킷만 합친다', () => {
+		const dict = {
+			WD001: { ko: 'a', en: 'b' },
+			ST002: { ko: 'c', en: 'd' },
+			XX999: { ko: 'x', en: 'y' }
+		};
+		const { prefixBucketItems } = splitDictionaryByConfiguredSheetPrefixes(dict, 'WD, ST');
+		assert.deepStrictEqual(mergeDictionaryFromPrefixBuckets(prefixBucketItems), {
+			WD001: dict.WD001,
+			ST002: dict.ST002
+		});
 	});
 
 	test('긴 접두사 우선 매칭', () => {

@@ -70,3 +70,15 @@ export const splitDictionaryByConfiguredSheetPrefixes = (
 
 	return { prefixBucketItems, otherDictionary };
 };
+
+export const mergeDictionaryFromPrefixBuckets = (
+	prefixBucketItems: PrefixBucketItem[]
+): LanguageDictionary => {
+	const merged: LanguageDictionary = {};
+	for (const { dictionary } of prefixBucketItems) {
+		for (const codeKey of Object.keys(dictionary)) {
+			merged[codeKey] = dictionary[codeKey];
+		}
+	}
+	return merged;
+};

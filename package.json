@@ -122,8 +122,8 @@
         "languageHelper.workspaceExportJsonPath": {
           "type": "string",
           "default": "",
-          "description": "Folder for JSON export (required). E.g. language / JSON보내기 폴더 (필수). 예: language",
-          "markdownDescription": "**English:** Folder under the **first workspace root** for export: `all_language.json` (full dict), `{prefix}_lang.json` from **Target Sheet Names** (`targetSheetNames`, comma-separated), and `other_lang.json` if needed. **Required** — empty → error. **Example:** `language` → `{root}/language/…`. No `..` / absolute paths.\n\n**한국어:** **첫 워크스페이스 루트** 기준 폴더. **`all_language.json`**(전체), **`targetSheetNames`**로 `{접두사}_lang.json`, 필요 시 **`other_lang.json`**. **비우면 오류.** **예:** `language`. `..`·절대 경로 불가.",
+          "description": "Folder for JSON export (matched keys only). Required. / JSON보내기 폴더 (접두 매칭 키만). 필수.",
+          "markdownDescription": "**English:** Folder under the **first workspace root**. Writes **`all_language.json`** (only keys matching **Target Sheet Names** prefixes) and one **`{prefix}_lang.json`** per configured prefix. Keys that match no prefix are **not** exported. **Required** — empty → error. **Example:** `language` → `{root}/language/…`. No `..` / absolute paths.\n\n**한국어:** **첫 워크스페이스 루트** 기준 폴더. **`targetSheetNames`** 접두에 맞는 키만 **`all_language.json`**과 **`{접두사}_lang.json`**에 저장합니다. 접두에 안 맞는 키는 보내지 않습니다. **비우면 오류.** **예:** `language`. `..`·절대 경로 불가.",
           "order": 10
         }
       }

@@ -20,7 +20,7 @@ A VS Code extension that fetches multilingual data from Google Sheets and displa
 - 💾 **Local Caching**: Data is stored in local storage for offline use
 - 🔄 **Manual Sync**: Update to the latest data only when needed
 - 📝 **Multi-Sheet Support**: Fetch multiple sheets (WD, ST, CD, etc.) at once
-- 📤 **Export to workspace JSON**: Under **`workspaceExportJsonPath`** (**required**): `all_language.json` (full dictionary), plus `{prefix}_lang.json` per entry in **Target Sheet Names** (`targetSheetNames`, comma-separated, e.g. `WD,ST,CD` → `wd_lang.json`, …), and `other_lang.json` for keys that match no prefix
+- 📤 **Export to workspace JSON**: Under **`workspaceExportJsonPath`** (**required**): **`all_language.json`** and **`{prefix}_lang.json`** files contain **only** keys that match **Target Sheet Names** (`targetSheetNames`). Keys that match no prefix are **not** written to disk.
 
 ### Complete Workflow
 
@@ -144,7 +144,7 @@ Open the Command Palette (`Ctrl + Shift + P` / `Cmd + Shift + P`) and run:
 | Command | What it does |
 |---------|----------------|
 | **Sheet Language Global Helper: Sheet Connect Sync** | Fetches data from your configured source (Service Account JSON, API Key, JSON URL, or CSV URL) and saves it to extension local storage for hover and inlay hints. |
-| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | Writes under **`workspaceExportJsonPath`**: **`all_language.json`** (entire dictionary), one **`{prefix}_lang.json`** per token in **`targetSheetNames`** (comma-separated; default `WD,ST,CD` if unset), and **`other_lang.json`** only if some keys match no prefix. Longer prefixes win when overlapping. **Empty `workspaceExportJsonPath` → error.** Run **Sync** first if you have no data yet. |
+| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | Writes under **`workspaceExportJsonPath`**: **`all_language.json`** (union of keys matching **`targetSheetNames`** prefixes) and one **`{prefix}_lang.json`** per configured prefix (only if that prefix has keys). Unmatched keys are omitted. If **no** key matches any prefix, export shows a warning and writes nothing. Longer prefixes win when overlapping. **Empty `workspaceExportJsonPath` → error.** Run **Sync** first if you have no data yet. |
 
 ### Data Synchronization
 
@@ -191,9 +191,8 @@ Use this when you want a **file on disk** (e.g. for code review, build scripts, 
 3. Set **`workspaceExportJsonPath`** (e.g. `language` or `src/locales`). **Required** — if empty, the export command **shows an error**. No `..` segments; use a path relative to the first workspace folder root.
 4. Optionally adjust **`targetSheetNames`** (comma-separated sheet/prefix list, same as sync). Export uses this list to split keys: e.g. `WD,ST,MS` → `wd_lang.json`, `st_lang.json`, `ms_lang.json` (only files with at least one key are created).
 5. Run **Sheet Language Global Helper: Export synced dictionary to workspace JSON**. The folder (and any missing parent segments) is created if needed, then:
-   - **`all_language.json`** — full synced dictionary (always)
-   - **`{lowercasePrefix}_lang.json`** — one per **`targetSheetNames`** entry that has matching keys
-   - **`other_lang.json`** — keys that do not start with any configured prefix (only if non-empty)
+   - **`all_language.json`** — only keys whose code starts with one of the **`targetSheetNames`** prefixes (same union as the per-prefix files)
+   - **`{lowercasePrefix}_lang.json`** — one per **`targetSheetNames`** entry that has at least one matching key (empty prefixes are skipped)
 
 **JSON shape** (each file is an object: code key → language code → text):
 

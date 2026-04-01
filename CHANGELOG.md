@@ -6,6 +6,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+- JSON 보내기: **`all_language.json`**은 **`targetSheetNames`** 접두에 맞는 키만 포함. **`other_lang.json`**은 더 이상 만들지 않음. 접두와 맞는 키가 없으면 경고 후 저장하지 않음.
+
 ## [0.0.22]
 
 - 내부: `src/shared`를 도메인별 폴더(`language-dictionary`, `sheet-data`, `code-inspection`, `http-url`, `workspace-export`)로 재구성. 확장 동작·설정은 변경 없음.
