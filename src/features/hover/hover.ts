@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { KOREAN_CHARACTER_PATTERN, STRING_LITERAL_PATTERN, TRANSLATION_FUNCTION_PATTERN } from '../../shared/constants';
-import type { LanguageDictionary } from '../../shared/types';
-import { getCodePattern } from '../../shared/utils/codePatternHelper';
-import { createHoverContent } from '../../shared/utils/markdown';
+import { KOREAN_CHARACTER_PATTERN, STRING_LITERAL_PATTERN, TRANSLATION_FUNCTION_PATTERN } from '../../shared/code-inspection/constants';
+import type { LanguageDictionary } from '../../shared/language-dictionary/types';
+import { getCodePattern } from '../../shared/code-inspection/utils/codePatternHelper';
+import { createHoverContent } from '../../shared/code-inspection/utils/markdown';
 
 const extractCodeFromPosition = (
 	document: vscode.TextDocument,

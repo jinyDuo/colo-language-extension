@@ -4,11 +4,12 @@ import { getAccessTokenFromServiceAccountJson } from '../sheet-api/googleAuth';
 import { fetchDictionaryFromJsonUrl } from '../sheet-api/jsonFetcher';
 import { fetchMultipleSheetsByApi } from '../sheet-api/multiSheetFetcher';
 import { fetchAllSheetNames } from '../sheet-api/sheetListFetcher';
-import { DEFAULT_TARGET_SHEET_NAMES } from '../../shared/constants';
-import type { LanguageDictionary, SheetsCredential } from '../../shared/types';
-import { parseCsvToDictionary } from '../../shared/utils/parser';
-import { extractSheetIdFromUrl } from '../../shared/utils/sheetIdExtractor';
-import { parseSheetNames } from '../../shared/utils/sheetNameParser';
+import { DEFAULT_TARGET_SHEET_NAMES } from '../../shared/sheet-data/constants';
+import type { LanguageDictionary } from '../../shared/language-dictionary/types';
+import type { SheetsCredential } from '../../shared/sheet-data/types';
+import { parseCsvToDictionary } from '../../shared/sheet-data/utils/parser';
+import { extractSheetIdFromUrl } from '../../shared/sheet-data/utils/sheetIdExtractor';
+import { parseSheetNames } from '../../shared/sheet-data/utils/sheetNameParser';
 
 const resolveSheetId = (
 	sheetId: string | undefined,
@@ -102,6 +103,12 @@ const saveDictionaryAndShowMessage = async (
 	return freshDictionary;
 };
 
+const OUTPUT_CHANNEL_NAME = 'Sheet Language Global Helper';
+
+const getOutputChannel = (): vscode.OutputChannel => {
+	return vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
+};
+
 const persistDictionaryAndNotify = async (
 	context: vscode.ExtensionContext,
 	freshDictionary: LanguageDictionary,
@@ -109,9 +116,13 @@ const persistDictionaryAndNotify = async (
 ): Promise<void> => {
 	await context.globalState.update('langData', freshDictionary);
 	const entryCount = Object.keys(freshDictionary).length;
-	vscode.window.showInformationMessage(
-		`동기화 완료! (${entryCount}개 데이터, ${method} 사용)`
-	);
+	const successMessage = `동기화 완료! (${entryCount}개 데이터, ${method} 사용)`;
+
+	vscode.window.showInformationMessage(successMessage);
+
+	const outputChannel = getOutputChannel();
+	outputChannel.appendLine(`[${new Date().toISOString()}] ${successMessage}`);
+	outputChannel.show();
 };
 
 export const syncLanguageData = async (
@@ -169,9 +180,14 @@ export const syncLanguageData = async (
 		return await saveDictionaryAndShowMessage(context, csvData, 'CSV URL');
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
-		vscode.window.showErrorMessage(
-			`데이터를 가져오는데 실패했습니다: ${errorMessage}`
-		);
+		const fullMessage = `데이터를 가져오는데 실패했습니다: ${errorMessage}`;
+
+		vscode.window.showErrorMessage(fullMessage);
+
+		const outputChannel = getOutputChannel();
+		outputChannel.appendLine(`[${new Date().toISOString()}] ❌ ${fullMessage}`);
+		outputChannel.show();
+
 		return languageDictionary;
 	}
 };

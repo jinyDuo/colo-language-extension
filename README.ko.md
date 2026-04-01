@@ -2,6 +2,11 @@
 
 구글 스프레드시트에서 다국어 데이터를 가져와 코드에서 hover로 확인할 수 있는 VS Code 익스텐션입니다.
 
+## 🌐 언어
+
+- [English](README.md)
+- [한국어 (현재 문서)](README.ko.md)
+
 ## 🔗 링크
 
 - 📦 [VS Code 마켓플레이스](https://marketplace.visualstudio.com/items?itemName=language-global-helper.lang-global-helper)
@@ -9,12 +14,13 @@
 
 ## ✨ 주요 기능
 
-- 📊 **구글 스프레드시트 연동**: Google Sheets API 또는 CSV URL을 통해 다국어 데이터 가져오기
+- 📊 **구글 스프레드시트 연동**: **서비스 계정 JSON**, Google Sheets API 키, **JSON API URL**, 또는 CSV URL로 데이터 가져오기
 - 🔍 **Hover 기능**: 코드에서 `WD`, `ST`, `CD`로 시작하는 키에 마우스를 올리면 다국어 정보 표시
 - 🏷️ **인라인 번역(인레이 힌트)**: 호버 없이 코드 옆에 번역을 바로 표시
 - 💾 **로컬 캐싱**: 데이터를 로컬 스토리지에 저장하여 오프라인에서도 사용 가능
 - 🔄 **수동 동기화**: 원할 때만 최신 데이터로 업데이트
 - 📝 **다중 시트 지원**: 여러 시트(WD, ST, CD 등)를 한 번에 가져오기
+- 📤 **워크스페이스 JSON 보내기**: **`workspaceExportJsonPath`**(필수) 아래에 **`targetSheetNames`**에 맞는 키만 **`all_language.json`** 및 **`{접두사}_lang.json`**으로 저장. 접두에 안 맞는 키는 파일로 보내지 않음
 
 ### 전체 워크플로우
 
@@ -60,83 +66,147 @@ VS Code에서 `Ctrl + ,` (또는 `Cmd + ,` on Mac)를 눌러 설정을 열고, �
 
 인라인 힌트가 보이려면 VS Code 설정에서 **Editor: Inlay Hints** 가 `on` 인지 확인하세요.
 
-#### 방법 1: Google Sheets API 사용 (권장)
+**데이터 소스 우선순위:** 서비스 계정 JSON → API 키 → JSON API URL → CSV URL (먼저 설정된 것이 사용됨)
+
+#### 방법 1: 서비스 계정 JSON (우선순위 1, 비공개 시트 권장)
+
+1. **서비스 계정 만들기**
+   - [Google Cloud Console](https://console.cloud.google.com/) → IAM 및 관리자 → 서비스 계정 → 서비스 계정 만들기
+   - 키(JSON) 생성 후 파일 다운로드
+
+2. **스프레드시트 공유**: 서비스 계정 이메일(예: `xxx@project.iam.gserviceaccount.com`)을 뷰어로 추가
+
+3. **VS Code 설정**
+   - **Sheet Service Account Json**: JSON 키 파일 **내용 전체**를 붙여넣기 (파일 경로가 아님)
+   - **Sheet Id** 또는 **Sheet Url**: 스프레드시트 ID 또는 전체 URL
+   - **All Sheet Names** / **Target Sheet Names**: 가져올 시트 선택
+
+#### 방법 2: Google Sheets API 키 (우선순위 2)
 
 1. **API 키 발급**
-   - [Google Cloud Console](https://console.cloud.google.com/) 접속
-   - 프로젝트 생성 → API 및 서비스 > 라이브러리 → "Google Sheets API" 활성화
+   - [Google Cloud Console](https://console.cloud.google.com/) → API 및 서비스 > 라이브러리 → "Google Sheets API" 활성화
    - API 및 서비스 > 사용자 인증 정보 > API 키 만들기
 
 2. **시트 공유 설정** ⚠️ 필수
-   - 구글 스프레드시트 우측 상단 **공유** 버튼 클릭
-   - **링크가 있는 모든 사용자** 선택, **뷰어** 권한 설정
+   - 구글 스프레드시트 → **공유** → **링크가 있는 모든 사용자** → **뷰어**
 
 3. **VS Code 설정**
-   - **Sheet Api Key**: 발급받은 API 키 입력
-   - **Sheet Id**: 스프레드시트 URL에서 ID 추출 (또는 전체 URL 입력 시 자동 추출)
-   - **All Sheet Names**: 모든 시트 가져오기 (기본값: 체크됨)
-   - **Target Sheet Names**: 지정 시트만 가져오기 (예: `WD,ST,CD`)
+   - **Sheet Api Key**: API 키 입력
+   - **Sheet Id**: 스프레드시트 ID 또는 URL
+   - **All Sheet Names** / **Target Sheet Names**: 필요에 따라 설정
 
-#### 방법 2: CSV URL 사용
+#### 방법 3: JSON API URL (우선순위 2 대안)
+
+- JSON을 반환하는 URL 사용 (자체 API 또는 게시된 JSON).
+- **Sheet Json Url**: URL 입력. 응답은 배열 `[{ "key", "ko", "en", ... }]` 또는 객체 `{ "WD001": { "ko": "...", "en": "..." }, ... }` 형태여야 함.
+
+#### 방법 4: CSV URL (우선순위 3)
 
 1. 구글 스프레드시트에서 **파일 > 공유 > 웹에 게시** → CSV 형식 선택
-2. 생성된 URL을 **Sheet Url**에 입력
+2. **Sheet Url**: 생성된 CSV URL 입력
 
-> 💡 **우선순위**: API 키가 있으면 API 사용, 없으면 CSV URL 사용
+> 💡 **우선순위**: 서비스 계정 JSON → API 키 또는 JSON URL → CSV URL. 먼저 설정한 항목이 사용됩니다.
 
 ### 설정 방법 비교
 
 ```mermaid
 flowchart TD
-    A[설정 시작] --> B{API 키 있음?}
-    B -->|있음| C[방법 1: Google Sheets API]
-    B -->|없음| D[방법 2: CSV URL]
+    A[설정 시작] --> B{서비스 계정 JSON?}
+    B -->|있음| C[방법 1: 서비스 계정 JSON]
+    B -->|없음| F{API 키?}
+    F -->|있음| D[방법 2: Google Sheets API]
+    F -->|없음| G{JSON URL?}
+    G -->|있음| H[방법 3: JSON API URL]
+    G -->|없음| I[방법 4: CSV URL]
     
-    C --> C1[1. Google Cloud Console<br/>API 키 발급]
-    C1 --> C2[2. 시트 공유 설정<br/>링크가 있는 모든 사용자]
-    C2 --> C3[3. VS Code 설정<br/>sheetApiKey, sheetId 입력]
-    C3 --> E[동기화 실행]
-    
-    D --> D1[1. 구글 시트<br/>웹에 게시 CSV 형식]
-    D1 --> D2[2. VS Code 설정<br/>sheetUrl 입력]
-    D2 --> E
+    C --> C1[Sheet Service Account Json에<br/>JSON 키 전체 붙여넣기]
+    C1 --> E[동기화 실행]
+    D --> D1[sheetApiKey, sheetId 입력]
+    D1 --> E
+    H --> H1[Sheet Json Url 입력]
+    H1 --> E
+    I --> I1[Sheet Url - CSV 입력]
+    I1 --> E
     
     style C fill:#c8e6c9,color:#000000
-    style D fill:#ffe0b2,color:#000000
+    style D fill:#b3e5fc,color:#000000
+    style H fill:#e1bee7,color:#000000
+    style I fill:#ffe0b2,color:#000000
     style E fill:#b3e5fc,color:#000000
 ```
 
 ## 📖 사용 방법
 
+### 명령 팔레트
+
+`Ctrl + Shift + P` (Mac: `Cmd + Shift + P`)로 명령 팔레트를 연 뒤 아래를 실행합니다.
+
+| 명령 | 설명 |
+|------|------|
+| **Sheet Language Global Helper: Sheet Connect Sync** | 설정한 소스(서비스 계정 JSON, API 키, JSON URL, CSV URL)에서 데이터를 가져와 확장 로컬 스토리지에 저장합니다. Hover·인레이 힌트에 사용됩니다. |
+| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | **`workspaceExportJsonPath`** 아래에 **`targetSheetNames`**(쉼표 구분, 비어 있으면 기본 `WD,ST,CD`) 접두에 맞는 키만 **`all_language.json`**(합집합)과 **`{접두사}_lang.json`**으로 저장. 매칭되는 키가 하나도 없으면 경고 후 저장하지 않음. 접두가 겹치면 **긴 쪽** 우선. **`workspaceExportJsonPath` 비우면 오류.** 먼저 **Sync** 실행. |
+
 ### 데이터 동기화
 
-1. `Ctrl + Shift + P` → "Sheet Language Global Helper: Sheet Connect Sync" 실행
-2. 동기화 완료 메시지 확인
+1. `Ctrl + Shift + P` → **Sheet Language Global Helper: Sheet Connect Sync** 실행
+2. 성공 시 정보 알림과 함께 **출력** 패널(채널 **Sheet Language Global Helper**)에 `동기화 완료! (N개 데이터, … 사용)` 형태의 로그가 남습니다.
+3. 실패 시 오류 알림이 뜨고, 같은 출력 채널에도 내용이 기록됩니다.
+
+> **Cursor 등 일부 환경:** 성공 토스트가 안 보이면 **보기 → 출력**에서 채널을 **Sheet Language Global Helper**로 바꾼 뒤 최근 로그를 확인하세요.
 
 #### 동기화 프로세스
 
 ```mermaid
 flowchart LR
-    A[명령 실행<br/>Ctrl+Shift+P] --> B{API 키 있음?}
-    B -->|있음| C[Google Sheets API<br/>데이터 가져오기]
-    B -->|없음| D[CSV URL<br/>데이터 가져오기]
+    A[명령 실행<br/>Ctrl+Shift+P] --> B{데이터 소스?}
+    B -->|서비스 계정 JSON| C[Sheets API - OAuth]
+    B -->|API 키| C
+    B -->|JSON URL| D[JSON API<br/>데이터 가져오기]
+    B -->|CSV URL| E2[CSV URL<br/>데이터 가져오기]
     
-    C --> C1{allSheetNames<br/>체크됨?}
+    C --> C1{allSheetNames?}
     C1 -->|예| C2[모든 시트 가져오기]
-    C1 -->|아니오| C3[targetSheetNames<br/>지정 시트만 가져오기]
-    C2 --> E[CSV 파싱]
+    C1 -->|아니오| C3[targetSheetNames]
+    C2 --> E[파싱 및 저장]
     C3 --> E
     D --> E
+    E2 --> E
     
-    E --> F[로컬 스토리지<br/>저장]
-    F --> G[동기화 완료<br/>메시지 표시]
+    E --> F[로컬 스토리지]
+    F --> G[동기화 완료]
     
     style A fill:#b3e5fc,color:#000000
     style C fill:#c8e6c9,color:#000000
-    style D fill:#ffe0b2,color:#000000
-    style F fill:#e1bee7,color:#000000
+    style D fill:#e1bee7,color:#000000
+    style E2 fill:#ffe0b2,color:#000000
     style G fill:#c8e6c9,color:#000000
 ```
+
+### 동기화 데이터를 JSON 파일로 보내기
+
+확장이 메모리에 갖고 있는 것과 **같은 구조**의 파일을 디스크에 두고 싶을 때 사용합니다 (코드 리뷰, 빌드 스크립트, 문서화 등).
+
+1. 최소 한 번 **Sheet Connect Sync**를 실행해 로컬 스토리지에 데이터를 채웁니다.
+2. VS Code에서 **폴더**를 연 상태여야 합니다 (파일만 단독으로 연 창이면 루트가 없을 수 있음).
+3. **`workspaceExportJsonPath`** 를 설정합니다 (예: `language`). **비우면 보내기 오류.** `..` 불가.
+4. 필요하면 **`targetSheetNames`**(대상 시트 이름 목록, 쉼표 구분)을 맞춥니다. 보내기 시 이 목록의 각 접두사마다 `{소문자접두사}_lang.json`이 생깁니다 (예: `WD,ST,CD` → `wd_lang.json` …). 키가 없는 접두사는 파일을 만들지 않습니다.
+5. **Export synced dictionary to workspace JSON** 실행 — 경로 폴더가 없으면 생성 후:
+   - **`all_language.json`** — `targetSheetNames` 접두에 맞는 키만 모은 사전 (접두별 파일과 동일 키 집합의 합)
+   - **`{접두사}_lang.json`** — 각 접두와 매칭되는 키만 (해당 키가 있을 때만 파일 생성)
+
+**JSON 형태** (각 파일은 동일 구조: 코드 키 → 언어 코드 → 문자열):
+
+```json
+{
+  "WD000001": {
+    "ko": "안녕하세요",
+    "en": "Hello",
+    "ja": "こんにちは"
+  }
+}
+```
+
+**멀티 루트 워크스페이스:** **`workspaceExportJsonPath`** 는 **목록의 첫 번째 폴더** 루트 기준입니다. 다른 폴더를 쓰려면 폴더 순서를 바꾸거나 해당 폴더만 단독으로 여세요.
 
 ### Hover로 다국어 확인
 
@@ -194,16 +264,21 @@ t("프로그램 등록");     // → Program Registration (시트 key가 한글 
 
 ## ⚙️ 설정 항목
 
-| 설정 | 설명 | 필수 | 기본값 |
-|------|------|------|--------|
-| `sheetApiKey` | 구글 시트 API 키 | API 사용 시 | - |
-| `sheetId` | 스프레드시트 ID | 선택 | - |
-| `allSheetNames` | 모든 시트 가져오기 | 선택 | `true` |
-| `targetSheetNames` | 대상 시트 목록 (쉼표 구분) | 선택 | `WD,ST,CD` |
-| `hoverKeyPatterns` | Hover/힌트에서 감지할 키 패턴 (쉼표 구분). `WD123`, `ST123` 같은 코드를 추출할 때 사용 | 선택 | `WD,ST,CD` |
-| `showInlineTranslation` | 인라인 번역(인레이 힌트) 표시 여부 | 선택 | `true` |
-| `inlineTranslationLanguage` | 인라인 번역 표시 언어 (드롭다운: `ko`, `en`, `ja` 등) | 선택 | `ko` |
-| `sheetUrl` | CSV URL | CSV 사용 시 | - |
+설정 키는 모두 `languageHelper.` 접두사를 붙입니다 (예: `settings.json`의 `languageHelper.sheetApiKey`).
+
+| 설정 키 | 설명 | 필수 | 기본값 |
+|---------|------|------|--------|
+| `sheetServiceAccountJson` | 구글 **서비스 계정 JSON 키** 파일의 **전체 텍스트** (우선순위 1) | 서비스 계정 사용 시 | (빈 값) |
+| `sheetApiKey` | 구글 시트 **API 키** (우선순위 2) | API만 사용 시 | (빈 값) |
+| `sheetJsonUrl` | 사전 형태 JSON을 반환하는 **URL** (우선순위 2 대안) | JSON URL 사용 시 | (빈 값) |
+| `sheetId` | 스프레드시트 ID (`sheetUrl`에 전체 URL이 있으면 생략 가능) | Sheets API 사용 시 | (빈 값) |
+| `sheetUrl` | 웹에 게시한 **CSV** URL (우선순위 3) | CSV만 사용 시 | (빈 값) |
+| `allSheetNames` | 스프레드시트의 모든 시트 가져오기 | 선택 | `true` |
+| `targetSheetNames` | `allSheetNames`가 꺼져 있을 때 가져올 시트 이름 (쉼표 구분) | 선택 | `WD,ST,CD` |
+| `hoverKeyPatterns` | Hover/인레이 힌트에서 쓸 키 패턴 (쉼표 구분, 예: `WD,ST,CD`) | 선택 | `WD,ST,CD` |
+| `showInlineTranslation` | 인라인 번역(인레이 힌트) 표시 | 선택 | `true` |
+| `inlineTranslationLanguage` | 인라인에 쓸 언어 코드 (`ko`, `en` 등) | 선택 | `ko` |
+| `workspaceExportJsonPath` | **JSON 보내기 필수:** 첫 워크스페이스 루트 기준 상대 폴더 (예: `language`). 비우면 보내기 명령 오류. `..` 불가 | **보내기** | (빈 값) |
 
 ### 동작 방식
 
@@ -258,6 +333,19 @@ flowchart TD
 
 ### "시트 ID가 잘못되었습니다"
 - 스프레드시트 URL에서 ID를 올바르게 추출했는지 확인
+
+### "Invalid URL" / URL 관련 오류
+- **Sheet Json Url**, **Sheet Url**에는 `https://`가 포함된 전체 URL을 넣거나, 호스트만 넣어도 됩니다(확장에서 `https://`를 붙일 수 있음).
+- 스프레드시트 **ID만** CSV/JSON URL 칸에 넣지 마세요. ID는 **Sheet Id** 또는 시트 **전체 링크**를 **Sheet Url** 등에 사용하세요.
+
+### JSON 보내기: "워크스페이스 폴더가 열려 있지 않습니다"
+- **파일 → 폴더 열기**로 프로젝트 폴더를 연 뒤 다시 실행하세요.
+
+### JSON 보내기: 경로 설정 오류 / 비어 있음
+- **`workspaceExportJsonPath`** 에 예를 들어 `language` 를 입력하세요. 비어 있으면 보내기 명령은 의도적으로 오류를 냅니다.
+
+### JSON 보내기: "보낼 언어 데이터가 없습니다"
+- 먼저 **Sheet Connect Sync**를 실행한 뒤 다시 보내기 하세요.
 
 ### Hover가 작동하지 않음
 - 데이터 동기화를 먼저 실행했는지 확인

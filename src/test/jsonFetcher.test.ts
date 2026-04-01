@@ -5,7 +5,7 @@ import {
 	fetchDictionaryFromJsonUrl,
 	parseJsonToDictionary
 } from '../features/sheet-api/jsonFetcher';
-import type { LanguageDictionary } from '../shared/types';
+import type { LanguageDictionary } from '../shared/language-dictionary/types';
 
 const resolveFixturePath = (filename: string): string => {
 	const fromCwd = path.join(process.cwd(), 'src', 'test', 'fixtures', filename);

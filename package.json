@@ -2,7 +2,7 @@
   "name": "lang-global-helper",
   "displayName": "Sheet Language Global Helper",
   "description": "An extension that fetches multilingual data from Google Spreadsheets and displays it on hover in code",
-  "version": "0.0.16",
+  "version": "0.0.22",
   "publisher": "language-global-helper",
   "icon": "global-hepler-logo.png",
   "repository": {
@@ -118,6 +118,13 @@
           "description": "Google Spreadsheet CSV URL (Priority 3) / 구글 스프레드시트 CSV URL (우선순위 3)",
           "markdownDescription": "**English:** Enter the Google Spreadsheet CSV URL. Used when no API key or JSON URL is set. Enter the URL published in CSV format from **File > Share > Publish to web** in Google Spreadsheets.\n\n**한국어:** 구글 스프레드시트 CSV URL을 입력하세요. API 키·JSON URL이 없을 때 사용됩니다. 구글 스프레드시트에서 **파일 > 공유 > 웹에 게시**에서 CSV 형식으로 게시한 URL을 입력합니다.",
           "order": 9
+        },
+        "languageHelper.workspaceExportJsonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Folder for JSON export (matched keys only). Required. / JSON보내기 폴더 (접두 매칭 키만). 필수.",
+          "markdownDescription": "**English:** Folder under the **first workspace root**. Writes **`all_language.json`** (only keys matching **Target Sheet Names** prefixes) and one **`{prefix}_lang.json`** per configured prefix. Keys that match no prefix are **not** exported. **Required** — empty → error. **Example:** `language` → `{root}/language/…`. No `..` / absolute paths.\n\n**한국어:** **첫 워크스페이스 루트** 기준 폴더. **`targetSheetNames`** 접두에 맞는 키만 **`all_language.json`**과 **`{접두사}_lang.json`**에 저장합니다. 접두에 안 맞는 키는 보내지 않습니다. **비우면 오류.** **예:** `language`. `..`·절대 경로 불가.",
+          "order": 10
         }
       }
     },
@@ -128,6 +135,10 @@
       {
         "command": "languageHelper.sync",
         "title": "Sheet Language Global Helper: Sheet Connect Sync"
+      },
+      {
+        "command": "languageHelper.exportWorkspaceJson",
+        "title": "Sheet Language Global Helper: Export synced dictionary to workspace JSON"
       }
     ]
   },
@@ -143,7 +154,7 @@
     "lint": "eslint src",
     "test": "vscode-test",
     "package:vsix": "vsce package --no-dependencies",
-    "publish:vsix": "vsce publish --no-dependencies"
+    "publish:vsix": "vsce publish --no-dependencies -p $VSCE_PAT"
   },
   "dependencies": {
     "axios": "^1.7.9",
