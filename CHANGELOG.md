@@ -6,7 +6,9 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
-- JSON 보내기: **`all_language.json`**은 **`targetSheetNames`** 접두에 맞는 키만 포함. **`other_lang.json`**은 더 이상 만들지 않음. 접두와 맞는 키가 없으면 경고 후 저장하지 않음.
+## [0.0.23]
+
+- JSON 보내기: **`all_language.json`**은 **`targetSheetNames`** 접두에 맞는 키만 포함. **`other_lang.json`**은 생성하지 않음. 접두와 맞는 키가 없으면 경고 후 저장하지 않음.
 
 ## [0.0.22]
 
