@@ -6,6 +6,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+- JSON 보내기: **`all_language.json`**(전체 사전), **`targetSheetNames`**(쉼표 구분) 기준 `{접두사}_lang.json`, 미매칭은 **`other_lang.json`**
+
 ## [0.0.21]
 
 - JSON 보내기: 코드 접두사별 `wd_lang.json`, `st_lang.json`, `cd_lang.json`, `other_lang.json`

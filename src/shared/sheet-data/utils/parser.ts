@@ -1,6 +1,6 @@
 import type { ParseConfig, ParseResult } from 'papaparse';
 import { parse } from 'papaparse';
-import type { LanguageDictionary } from '../types';
+import type { LanguageDictionary } from '../../language-dictionary/types';
 
 const hasCriticalErrors = (errors: ParseResult<any>['errors']): boolean => {
 	return errors.some(

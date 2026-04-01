@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { normalizeAndValidateUrl } from '../../shared/utils/urlHelper';
+import { normalizeAndValidateUrl } from '../../shared/http-url/utils/urlHelper';
 import { handleApiError } from './errorHandler';
 
 export const fetchDictionaryData = async (url: string): Promise<string> => {

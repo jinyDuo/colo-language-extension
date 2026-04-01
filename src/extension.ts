@@ -3,7 +3,7 @@ import { exportLanguageDictionaryToWorkspaceJson } from './features/export-works
 import { provideHover } from './features/hover/hover';
 import { provideInlineHints } from './features/inline-hints/inlineHints';
 import { syncLanguageData } from './features/sync/sync';
-import type { LanguageDictionary } from './shared/types';
+import type { LanguageDictionary } from './shared/language-dictionary/types';
 
 export const activate = (context: vscode.ExtensionContext): void => {
 	let languageDictionary: LanguageDictionary = context.globalState.get<LanguageDictionary>('langData', {});

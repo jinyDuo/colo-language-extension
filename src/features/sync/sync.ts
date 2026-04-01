@@ -4,11 +4,12 @@ import { getAccessTokenFromServiceAccountJson } from '../sheet-api/googleAuth';
 import { fetchDictionaryFromJsonUrl } from '../sheet-api/jsonFetcher';
 import { fetchMultipleSheetsByApi } from '../sheet-api/multiSheetFetcher';
 import { fetchAllSheetNames } from '../sheet-api/sheetListFetcher';
-import { DEFAULT_TARGET_SHEET_NAMES } from '../../shared/constants';
-import type { LanguageDictionary, SheetsCredential } from '../../shared/types';
-import { parseCsvToDictionary } from '../../shared/utils/parser';
-import { extractSheetIdFromUrl } from '../../shared/utils/sheetIdExtractor';
-import { parseSheetNames } from '../../shared/utils/sheetNameParser';
+import { DEFAULT_TARGET_SHEET_NAMES } from '../../shared/sheet-data/constants';
+import type { LanguageDictionary } from '../../shared/language-dictionary/types';
+import type { SheetsCredential } from '../../shared/sheet-data/types';
+import { parseCsvToDictionary } from '../../shared/sheet-data/utils/parser';
+import { extractSheetIdFromUrl } from '../../shared/sheet-data/utils/sheetIdExtractor';
+import { parseSheetNames } from '../../shared/sheet-data/utils/sheetNameParser';
 
 const resolveSheetId = (
 	sheetId: string | undefined,

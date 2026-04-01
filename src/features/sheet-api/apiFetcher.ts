@@ -1,6 +1,6 @@
 import axios from 'axios';
-import type { GoogleSheetsApiResponse, SheetsCredential } from '../../shared/types';
-import { padRowToMatchHeader, rowToCsvLine } from '../../shared/utils/csvHelper';
+import type { GoogleSheetsApiResponse, SheetsCredential } from '../../shared/sheet-data/types';
+import { padRowToMatchHeader, rowToCsvLine } from '../../shared/sheet-data/utils/csvHelper';
 import { handleApiError } from './errorHandler';
 
 const buildSheetsRequestConfig = (credential: SheetsCredential) => {

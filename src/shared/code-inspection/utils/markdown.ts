@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { LanguageEntry } from '../types';
+import type { LanguageEntry } from '../../language-dictionary/types';
 
 const getLanguageFlag = (langCode: string): string => {
 	const flags: Record<string, string> = {

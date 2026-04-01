@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { parseWorkspaceExportPathSegments } from '../shared/utils/workspaceExportPath';
+import { parseWorkspaceExportPathSegments } from '../shared/workspace-export/utils/workspaceExportPath';
 
 suite('workspaceExportPath', () => {
 	test('빈 문자열이면 EMPTY', () => {

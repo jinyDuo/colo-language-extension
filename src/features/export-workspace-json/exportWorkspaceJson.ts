@@ -1,15 +1,13 @@
 import * as vscode from 'vscode';
-import type { LanguageDictionary } from '../../shared/types';
-import { parseWorkspaceExportPathSegments } from '../../shared/utils/workspaceExportPath';
+import type { LanguageDictionary } from '../../shared/language-dictionary/types';
+import {
+	buildExportFileNameFromSheetPrefix,
+	splitDictionaryByConfiguredSheetPrefixes
+} from '../../shared/language-dictionary/utils/languageDictionaryExportBuckets';
+import { parseWorkspaceExportPathSegments } from '../../shared/workspace-export/utils/workspaceExportPath';
 
-type BucketId = 'wd' | 'st' | 'cd' | 'other';
-
-const BUCKET_FILE_NAME_ITEMS: Record<BucketId, string> = {
-	wd: 'wd_lang.json',
-	st: 'st_lang.json',
-	cd: 'cd_lang.json',
-	other: 'other_lang.json'
-};
+const ALL_LANGUAGE_FILE_NAME = 'all_language.json';
+const OTHER_LANGUAGE_FILE_NAME = 'other_lang.json';
 
 const CONFIG_EXPORT_PATH_KEY = 'workspaceExportJsonPath';
 
@@ -29,36 +27,15 @@ const resolveExportDirectoryUri = async (
 	return currentUri;
 };
 
-const resolveBucketId = (codeKey: string): BucketId => {
-	const upperKey = codeKey.trim().toUpperCase();
-	if (upperKey.startsWith('WD')) {
-		return 'wd';
-	}
-	if (upperKey.startsWith('ST')) {
-		return 'st';
-	}
-	if (upperKey.startsWith('CD')) {
-		return 'cd';
-	}
-	return 'other';
-};
-
-const splitDictionaryByCodePrefix = (
-	languageDictionary: LanguageDictionary
-): Record<BucketId, LanguageDictionary> => {
-	const bucketDictionaryItems: Record<BucketId, LanguageDictionary> = {
-		wd: {},
-		st: {},
-		cd: {},
-		other: {}
-	};
-
-	for (const codeKey of Object.keys(languageDictionary)) {
-		const bucketId = resolveBucketId(codeKey);
-		bucketDictionaryItems[bucketId][codeKey] = languageDictionary[codeKey];
-	}
-
-	return bucketDictionaryItems;
+const writeJsonFile = async (
+	exportDirectoryUri: vscode.Uri,
+	fileName: string,
+	payload: LanguageDictionary,
+	textEncoder: TextEncoder
+): Promise<void> => {
+	const targetUri = vscode.Uri.joinPath(exportDirectoryUri, fileName);
+	const jsonText = `${JSON.stringify(payload, null, 2)}\n`;
+	await vscode.workspace.fs.writeFile(targetUri, textEncoder.encode(jsonText));
 };
 
 export const exportLanguageDictionaryToWorkspaceJson = async (
@@ -105,7 +82,12 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 		return;
 	}
 
-	const bucketDictionaryItems = splitDictionaryByCodePrefix(languageDictionary);
+	const targetSheetNamesConfig = config.get<string>('targetSheetNames', '');
+	const { prefixBucketItems, otherDictionary } = splitDictionaryByConfiguredSheetPrefixes(
+		languageDictionary,
+		targetSheetNamesConfig
+	);
+
 	const workspaceRootUri = workspaceFolders[0].uri;
 
 	let exportDirectoryUri: vscode.Uri;
@@ -122,19 +104,23 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 	const textEncoder = new TextEncoder();
 	const writtenSummaryItems: string[] = [];
 
-	for (const bucketId of ['wd', 'st', 'cd', 'other'] as const) {
-		const partialDictionary = bucketDictionaryItems[bucketId];
-		const partialKeyCount = Object.keys(partialDictionary).length;
+	await writeJsonFile(exportDirectoryUri, ALL_LANGUAGE_FILE_NAME, languageDictionary, textEncoder);
+	writtenSummaryItems.push(`${exportPathDisplay}/${ALL_LANGUAGE_FILE_NAME} (${keyCount}개)`);
+
+	for (const { sheetPrefix, dictionary } of prefixBucketItems) {
+		const partialKeyCount = Object.keys(dictionary).length;
 		if (partialKeyCount === 0) {
 			continue;
 		}
+		const fileName = buildExportFileNameFromSheetPrefix(sheetPrefix);
+		await writeJsonFile(exportDirectoryUri, fileName, dictionary, textEncoder);
+		writtenSummaryItems.push(`${exportPathDisplay}/${fileName} (${partialKeyCount}개)`);
+	}
 
-		const fileName = BUCKET_FILE_NAME_ITEMS[bucketId];
-		const targetUri = vscode.Uri.joinPath(exportDirectoryUri, fileName);
-		const jsonText = `${JSON.stringify(partialDictionary, null, 2)}\n`;
-		await vscode.workspace.fs.writeFile(targetUri, textEncoder.encode(jsonText));
-		const relativePath = `${exportPathDisplay}/${fileName}`;
-		writtenSummaryItems.push(`${relativePath} (${partialKeyCount}개)`);
+	const otherKeyCount = Object.keys(otherDictionary).length;
+	if (otherKeyCount > 0) {
+		await writeJsonFile(exportDirectoryUri, OTHER_LANGUAGE_FILE_NAME, otherDictionary, textEncoder);
+		writtenSummaryItems.push(`${exportPathDisplay}/${OTHER_LANGUAGE_FILE_NAME} (${otherKeyCount}개)`);
 	}
 
 	const successMessage = `언어 데이터를 저장했습니다: ${writtenSummaryItems.join(', ')}`;

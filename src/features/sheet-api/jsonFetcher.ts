@@ -1,6 +1,6 @@
 import axios from 'axios';
-import type { LanguageDictionary, LanguageEntry } from '../../shared/types';
-import { normalizeAndValidateUrl } from '../../shared/utils/urlHelper';
+import type { LanguageDictionary, LanguageEntry } from '../../shared/language-dictionary/types';
+import { normalizeAndValidateUrl } from '../../shared/http-url/utils/urlHelper';
 import { handleApiError } from './errorHandler';
 
 const KEY_FIELD_LOWER = 'key';

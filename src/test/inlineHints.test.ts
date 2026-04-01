@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { provideInlineHints } from '../features/inline-hints/inlineHints';
-import type { LanguageDictionary } from '../shared/types';
+import type { LanguageDictionary } from '../shared/language-dictionary/types';
 
 suite('Inlay Hints Provider Test Suite', () => {
 	const createTestDocument = async (

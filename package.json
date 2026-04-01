@@ -123,7 +123,7 @@
           "type": "string",
           "default": "",
           "description": "Folder for JSON export (required). E.g. language / JSON보내기 폴더 (필수). 예: language",
-          "markdownDescription": "**English:** Relative path from the **first workspace folder root** for exported `*_lang.json` files. **Required** — export errors if empty. **Example:** `language` → files under `{root}/language/`. No `..`, `.`, or absolute paths; missing folders are created.\n\n**한국어:** **첫 워크스페이스 폴더 루트** 기준 상대 경로. **비우면 보내기 오류.** **예:** `language` 입력 시 `{루트}/language/` 아래에 JSON 저장. `..`·`.`·절대 경로 불가, 없는 폴더는 자동 생성.",
+          "markdownDescription": "**English:** Folder under the **first workspace root** for export: `all_language.json` (full dict), `{prefix}_lang.json` from **Target Sheet Names** (`targetSheetNames`, comma-separated), and `other_lang.json` if needed. **Required** — empty → error. **Example:** `language` → `{root}/language/…`. No `..` / absolute paths.\n\n**한국어:** **첫 워크스페이스 루트** 기준 폴더. **`all_language.json`**(전체), **`targetSheetNames`**로 `{접두사}_lang.json`, 필요 시 **`other_lang.json`**. **비우면 오류.** **예:** `language`. `..`·절대 경로 불가.",
           "order": 10
         }
       }
