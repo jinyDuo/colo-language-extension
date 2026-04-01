@@ -6,7 +6,11 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
-- README / README.ko: 명령 팔레트 안내, 워크스페이스 JSON 보내기 사용법, 전체 설정 표, 동기화·Output 안내, URL/JSON 보내기 문제 해결 항목 추가
+## [0.0.20]
+
+- 워크스페이스 루트에 동기화 사전 JSON보내기 명령 (`Export synced dictionary to workspace JSON`), 설정 `workspaceExportJsonFileName`
+- CSV/JSON API URL에 `https://` 자동 보정 및 URL 형식 검증 (`urlHelper`)
+- README / README.ko: 명령 팔레트, JSON 보내기, 전체 설정 표, 동기화·Output, 문제 해결 보강
 
 ## [0.0.19]
 
