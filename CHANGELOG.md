@@ -6,7 +6,9 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
-- JSON 보내기: **`all_language.json`**(전체 사전), **`targetSheetNames`**(쉼표 구분) 기준 `{접두사}_lang.json`, 미매칭은 **`other_lang.json`**
+## [0.0.22]
+
+- 내부: `src/shared`를 도메인별 폴더(`language-dictionary`, `sheet-data`, `code-inspection`, `http-url`, `workspace-export`)로 재구성. 확장 동작·설정은 변경 없음.
 
 ## [0.0.21]
 
