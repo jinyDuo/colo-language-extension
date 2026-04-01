@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { LanguageDictionary, LanguageEntry } from '../../shared/types';
+import { normalizeAndValidateUrl } from '../../shared/utils/urlHelper';
 import { handleApiError } from './errorHandler';
 
 const KEY_FIELD_LOWER = 'key';
@@ -64,8 +65,10 @@ export const fetchDictionaryFromJsonUrl = async (
 		throw new Error('JSON API URL을 입력해주세요.');
 	}
 
+	const validUrl = normalizeAndValidateUrl(url);
+
 	try {
-		const response = await axios.get<unknown>(url.trim());
+		const response = await axios.get<unknown>(validUrl);
 		return parseJsonToDictionary(response.data);
 	} catch (error) {
 		throw handleApiError(error);

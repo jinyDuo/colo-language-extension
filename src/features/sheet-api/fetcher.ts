@@ -1,13 +1,12 @@
 import axios from 'axios';
+import { normalizeAndValidateUrl } from '../../shared/utils/urlHelper';
 import { handleApiError } from './errorHandler';
 
 export const fetchDictionaryData = async (url: string): Promise<string> => {
-	if (!url) {
-		throw new Error('URL이 비어있습니다.');
-	}
+	const validUrl = normalizeAndValidateUrl(url);
 
 	try {
-		const response = await axios.get(url);
+		const response = await axios.get(validUrl);
 		return response.data;
 	} catch (error) {
 		throw handleApiError(error);

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { exportLanguageDictionaryToWorkspaceJson } from './features/export-workspace-json/exportWorkspaceJson';
 import { provideHover } from './features/hover/hover';
 import { provideInlineHints } from './features/inline-hints/inlineHints';
 import { syncLanguageData } from './features/sync/sync';
@@ -12,6 +13,14 @@ export const activate = (context: vscode.ExtensionContext): void => {
 		syncLanguageData(context, languageDictionary).then((updatedDictionary) => {
 			languageDictionary = updatedDictionary;
 			inlayHintsRefreshEmitter.fire();
+		});
+	};
+
+	const handleExportWorkspaceJsonCommand = (): void => {
+		languageDictionary = context.globalState.get<LanguageDictionary>('langData', languageDictionary);
+		exportLanguageDictionaryToWorkspaceJson(languageDictionary).catch((error: unknown) => {
+			const message = error instanceof Error ? error.message : '알 수 없는 오류';
+			vscode.window.showErrorMessage(`JSON 저장 실패: ${message}`);
 		});
 	};
 
@@ -30,9 +39,14 @@ export const activate = (context: vscode.ExtensionContext): void => {
 		return provideInlineHints(document, range, languageDictionary, token);
 	};
 
-	const disposableCommand = vscode.commands.registerCommand(
+	const disposableSyncCommand = vscode.commands.registerCommand(
 		'languageHelper.sync',
 		handleSyncCommand
+	);
+
+	const disposableExportJsonCommand = vscode.commands.registerCommand(
+		'languageHelper.exportWorkspaceJson',
+		handleExportWorkspaceJsonCommand
 	);
 
 	const hoverProvider = vscode.languages.registerHoverProvider(
@@ -61,7 +75,8 @@ export const activate = (context: vscode.ExtensionContext): void => {
 	);
 
 	context.subscriptions.push(
-		disposableCommand,
+		disposableSyncCommand,
+		disposableExportJsonCommand,
 		hoverProvider,
 		inlayHintsProvider,
 		disposableConfigurationChange,

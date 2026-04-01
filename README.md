@@ -20,6 +20,7 @@ A VS Code extension that fetches multilingual data from Google Sheets and displa
 - 💾 **Local Caching**: Data is stored in local storage for offline use
 - 🔄 **Manual Sync**: Update to the latest data only when needed
 - 📝 **Multi-Sheet Support**: Fetch multiple sheets (WD, ST, CD, etc.) at once
+- 📤 **Export to workspace JSON**: Save synced dictionary as a JSON file in the workspace folder root (for review, CI, or sharing with teammates)
 
 ### Complete Workflow
 
@@ -136,10 +137,22 @@ flowchart TD
 
 ## 📖 Usage
 
+### Command Palette
+
+Open the Command Palette (`Ctrl + Shift + P` / `Cmd + Shift + P`) and run:
+
+| Command | What it does |
+|---------|----------------|
+| **Sheet Language Global Helper: Sheet Connect Sync** | Fetches data from your configured source (Service Account JSON, API Key, JSON URL, or CSV URL) and saves it to extension local storage for hover and inlay hints. |
+| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | Writes the **currently synced** dictionary to a JSON file in the **first workspace folder root**. Run **Sync** first if you have no data yet. |
+
 ### Data Synchronization
 
-1. Press `Ctrl + Shift + P` → Run "Sheet Language Global Helper: Sheet Connect Sync"
-2. Confirm the sync completion message
+1. Press `Ctrl + Shift + P` → Run **Sheet Language Global Helper: Sheet Connect Sync**
+2. On success you should see an information toast and/or the **Output** panel (channel **Sheet Language Global Helper**) with a line like: `동기화 완료! (N개 데이터, … 사용)`.
+3. On failure, an error message appears; details are also logged to the same Output channel.
+
+> **Cursor / some editors:** If the success toast does not appear, open **View → Output**, choose **Sheet Language Global Helper** in the dropdown, and check the latest log line.
 
 #### Synchronization Process
 
@@ -168,6 +181,31 @@ flowchart LR
     style E2 fill:#ffe0b2,color:#000000
     style G fill:#c8e6c9,color:#000000
 ```
+
+### Export synced data to a JSON file
+
+Use this when you want a **file on disk** (e.g. for code review, build scripts, or documentation) with the same structure the extension uses in memory.
+
+1. Run **Sheet Connect Sync** at least once so local storage has data.
+2. Open a **folder** in VS Code (not only single files without a workspace folder).
+3. Run **Sheet Language Global Helper: Export synced dictionary to workspace JSON**.
+4. A file appears in the **root of the first folder** in your workspace (default name: `sheet-language-dictionary.json`).
+
+**Setting:** `languageHelper.workspaceExportJsonFileName` — change only the **file name** (no paths). Default: `sheet-language-dictionary.json`.
+
+**JSON shape** (object: code key → language code → text):
+
+```json
+{
+  "WD000001": {
+    "ko": "안녕하세요",
+    "en": "Hello",
+    "ja": "こんにちは"
+  }
+}
+```
+
+**Multi-root workspaces:** The file is written under the **first** folder listed in the workspace. To use another folder, reorder folders or open that folder alone.
 
 ### View Multilingual Info via Hover
 
@@ -225,16 +263,21 @@ t("프로그램 등록");      // → Program Registration (if your sheet key is
 
 ## ⚙️ Configuration
 
-| Setting | Description | Required | Default |
-|---------|-------------|----------|---------|
-| `sheetApiKey` | Google Sheets API Key | When using API | - |
-| `sheetId` | Spreadsheet ID | Optional | - |
-| `allSheetNames` | Fetch all sheets | Optional | `true` |
-| `targetSheetNames` | Target sheet list (comma-separated) | Optional | `WD,ST,CD` |
-| `hoverKeyPatterns` | Hover/Hint key patterns (comma-separated). Used to detect codes like `WD123`, `ST123`. | Optional | `WD,ST,CD` |
-| `showInlineTranslation` | Show inline translation as inlay hints | Optional | `true` |
-| `inlineTranslationLanguage` | Language to display for inline translation (dropdown: `ko`, `en`, `ja`, etc.) | Optional | `ko` |
-| `sheetUrl` | CSV URL | When using CSV | - |
+Settings use the prefix `languageHelper.` (e.g. `languageHelper.sheetApiKey` in `settings.json`).
+
+| Setting key | Description | Required | Default |
+|-------------|-------------|----------|---------|
+| `sheetServiceAccountJson` | Full text of the Google **service account JSON key** (Priority 1). | If using service account | (empty) |
+| `sheetApiKey` | Google Sheets **API key** (Priority 2). | If using API without service account | (empty) |
+| `sheetJsonUrl` | URL returning JSON dictionary (array or object shape) (Priority 2 alt.). | If using JSON URL | (empty) |
+| `sheetId` | Spreadsheet ID (optional if `sheetUrl` contains the URL). | For Sheets API | (empty) |
+| `sheetUrl` | Published **CSV** URL (Priority 3). | If using CSV only | (empty) |
+| `allSheetNames` | Fetch all sheets in the spreadsheet. | Optional | `true` |
+| `targetSheetNames` | Comma-separated sheet names when `allSheetNames` is off. | Optional | `WD,ST,CD` |
+| `hoverKeyPatterns` | Comma-separated patterns for hover/inlay (e.g. `WD,ST,CD`). | Optional | `WD,ST,CD` |
+| `showInlineTranslation` | Show inlay hints for translations. | Optional | `true` |
+| `inlineTranslationLanguage` | Language code for inlay text (`ko`, `en`, …). | Optional | `ko` |
+| `workspaceExportJsonFileName` | File name for **Export synced dictionary to workspace JSON** (workspace root only). | Optional | `sheet-language-dictionary.json` |
 
 ### How It Works
 
@@ -289,6 +332,16 @@ flowchart TD
 
 ### "Sheet ID is Incorrect"
 - Verify the ID is correctly extracted from the spreadsheet URL
+
+### "Invalid URL" / URL errors
+- Use a full URL with `https://` for **Sheet Json Url** and **Sheet Url**, or a host-only value (the extension may prepend `https://`).
+- Do not paste a spreadsheet **ID** into the CSV/JSON URL fields; use **Sheet Id** / **Sheet Url** (full link) for the API path.
+
+### Export JSON: "no workspace folder"
+- Open **File → Open Folder** so a folder is the workspace root, then run the export command again.
+
+### Export JSON: "no data"
+- Run **Sheet Connect Sync** first, then export again.
 
 ### Hover Not Working
 - Make sure data synchronization has been run first

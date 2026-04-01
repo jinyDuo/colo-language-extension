@@ -118,6 +118,13 @@
           "description": "Google Spreadsheet CSV URL (Priority 3) / 구글 스프레드시트 CSV URL (우선순위 3)",
           "markdownDescription": "**English:** Enter the Google Spreadsheet CSV URL. Used when no API key or JSON URL is set. Enter the URL published in CSV format from **File > Share > Publish to web** in Google Spreadsheets.\n\n**한국어:** 구글 스프레드시트 CSV URL을 입력하세요. API 키·JSON URL이 없을 때 사용됩니다. 구글 스프레드시트에서 **파일 > 공유 > 웹에 게시**에서 CSV 형식으로 게시한 URL을 입력합니다.",
           "order": 9
+        },
+        "languageHelper.workspaceExportJsonFileName": {
+          "type": "string",
+          "default": "sheet-language-dictionary.json",
+          "description": "Export JSON file name (workspace root) / 워크스페이스 루트에 내보낼 JSON 파일 이름",
+          "markdownDescription": "**English:** File name for **Export synced dictionary to workspace JSON** (saved in the first opened folder root). Only the file name; no paths or `../`.\n\n**한국어:** **동기화 데이터를 워크스페이스 JSON으로 내보내기** 명령으로 저장할 파일 이름(첫 번째 폴더 루트). 파일 이름만 입력하고 경로는 넣지 마세요.",
+          "order": 10
         }
       }
     },
@@ -128,6 +135,10 @@
       {
         "command": "languageHelper.sync",
         "title": "Sheet Language Global Helper: Sheet Connect Sync"
+      },
+      {
+        "command": "languageHelper.exportWorkspaceJson",
+        "title": "Sheet Language Global Helper: Export synced dictionary to workspace JSON"
       }
     ]
   },
