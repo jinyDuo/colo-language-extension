@@ -20,7 +20,7 @@
 - 💾 **로컬 캐싱**: 데이터를 로컬 스토리지에 저장하여 오프라인에서도 사용 가능
 - 🔄 **수동 동기화**: 원할 때만 최신 데이터로 업데이트
 - 📝 **다중 시트 지원**: 여러 시트(WD, ST, CD 등)를 한 번에 가져오기
-- 📤 **워크스페이스 JSON 보내기**: 동기화된 사전을 워크스페이스 폴더 루트의 JSON 파일로 저장 (검토·빌드·팀 공유용)
+- 📤 **워크스페이스 JSON 보내기**: 설정한 **`workspaceExportJsonPath`**(필수) 아래에 접두사별 `wd_lang.json`, `st_lang.json`, `cd_lang.json`(필요 시 `other_lang.json`) 저장; 경로 비우면 보내기 명령 오류
 
 ### 전체 워크플로우
 
@@ -144,7 +144,7 @@ flowchart TD
 | 명령 | 설명 |
 |------|------|
 | **Sheet Language Global Helper: Sheet Connect Sync** | 설정한 소스(서비스 계정 JSON, API 키, JSON URL, CSV URL)에서 데이터를 가져와 확장 로컬 스토리지에 저장합니다. Hover·인레이 힌트에 사용됩니다. |
-| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | **현재 동기화된** 사전을 **첫 번째 워크스페이스 폴더 루트**에 JSON 파일로 씁니다. 데이터가 없으면 먼저 **Sync**를 실행하세요. |
+| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | **현재 동기화된** 사전을 **`workspaceExportJsonPath`** 로 지정한 폴더(첫 번째 워크스페이스 루트 기준 상대 경로) 아래에 코드 접두사별로 씁니다. **설정이 비어 있으면 오류** — 기본 경로 없음. 예: `language` → `language/wd_lang.json` 등. 데이터가 없으면 먼저 **Sync**를 실행하세요. |
 
 ### 데이터 동기화
 
@@ -188,12 +188,14 @@ flowchart LR
 
 1. 최소 한 번 **Sheet Connect Sync**를 실행해 로컬 스토리지에 데이터를 채웁니다.
 2. VS Code에서 **폴더**를 연 상태여야 합니다 (파일만 단독으로 연 창이면 루트가 없을 수 있음).
-3. **Sheet Language Global Helper: Export synced dictionary to workspace JSON** 실행
-4. **워크스페이스에 등록된 첫 번째 폴더** 루트에 파일이 생성됩니다 (기본 이름: `sheet-language-dictionary.json`).
+3. **`workspaceExportJsonPath`** 를 설정합니다 (예: `language`, `src/locales`). **비워 두면 보내기 명령이 오류**입니다. `..` 는 사용할 수 없습니다.
+4. **Sheet Language Global Helper: Export synced dictionary to workspace JSON** 실행 — 지정한 경로(없으면 하위 폴더 포함)가 만들어지고, 아래 파일이 생성됩니다 (해당 접두사 키가 있을 때만):
+   - **`{경로}/wd_lang.json`** — 코드 키가 `WD`로 시작 (대소문자 무관)
+   - **`{경로}/st_lang.json`** — `ST`로 시작
+   - **`{경로}/cd_lang.json`** — `CD`로 시작
+   - **`{경로}/other_lang.json`** — 위 세 가지가 아닌 키만 모음 (해당 키가 있을 때만 파일 생성)
 
-**설정:** `languageHelper.workspaceExportJsonFileName` — **파일 이름만** 지정합니다 (`../` 등 경로는 사용하지 마세요). 기본값: `sheet-language-dictionary.json`.
-
-**JSON 형태** (코드 키 → 언어 코드 → 문자열):
+**JSON 형태** (각 파일은 동일 구조: 코드 키 → 언어 코드 → 문자열):
 
 ```json
 {
@@ -205,7 +207,7 @@ flowchart LR
 }
 ```
 
-**멀티 루트 워크스페이스:** 파일은 **목록의 첫 번째 폴더** 아래에만 씁니다. 다른 폴더를 쓰려면 폴더 순서를 바꾸거나 해당 폴더만 단독으로 여세요.
+**멀티 루트 워크스페이스:** **`workspaceExportJsonPath`** 는 **목록의 첫 번째 폴더** 루트 기준입니다. 다른 폴더를 쓰려면 폴더 순서를 바꾸거나 해당 폴더만 단독으로 여세요.
 
 ### Hover로 다국어 확인
 
@@ -277,7 +279,7 @@ t("프로그램 등록");     // → Program Registration (시트 key가 한글 
 | `hoverKeyPatterns` | Hover/인레이 힌트에서 쓸 키 패턴 (쉼표 구분, 예: `WD,ST,CD`) | 선택 | `WD,ST,CD` |
 | `showInlineTranslation` | 인라인 번역(인레이 힌트) 표시 | 선택 | `true` |
 | `inlineTranslationLanguage` | 인라인에 쓸 언어 코드 (`ko`, `en` 등) | 선택 | `ko` |
-| `workspaceExportJsonFileName` | **동기화 데이터를 워크스페이스 JSON으로 보내기** 시 저장할 파일 이름 (루트에만 생성) | 선택 | `sheet-language-dictionary.json` |
+| `workspaceExportJsonPath` | **JSON 보내기 필수:** 첫 워크스페이스 루트 기준 상대 폴더 (예: `language`). 비우면 보내기 명령 오류. `..` 불가 | **보내기** | (빈 값) |
 
 ### 동작 방식
 
@@ -339,6 +341,9 @@ flowchart TD
 
 ### JSON 보내기: "워크스페이스 폴더가 열려 있지 않습니다"
 - **파일 → 폴더 열기**로 프로젝트 폴더를 연 뒤 다시 실행하세요.
+
+### JSON 보내기: 경로 설정 오류 / 비어 있음
+- **`workspaceExportJsonPath`** 에 예를 들어 `language` 를 입력하세요. 비어 있으면 보내기 명령은 의도적으로 오류를 냅니다.
 
 ### JSON 보내기: "보낼 언어 데이터가 없습니다"
 - 먼저 **Sheet Connect Sync**를 실행한 뒤 다시 보내기 하세요.

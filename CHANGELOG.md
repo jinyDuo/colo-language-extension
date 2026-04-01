@@ -6,9 +6,11 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+- JSON 보내기: 코드 키 접두사별 `wd_lang.json`, `st_lang.json`, `cd_lang.json` (그 외는 `other_lang.json`). 저장 폴더는 **`workspaceExportJsonPath`**(필수, 비우면 오류). 설정 `workspaceExportJsonFileName` 제거
+
 ## [0.0.20]
 
-- 워크스페이스 루트에 동기화 사전 JSON보내기 명령 (`Export synced dictionary to workspace JSON`), 설정 `workspaceExportJsonFileName`
+- 워크스페이스 루트에 동기화 사전 JSON 보내기 명령 (`Export synced dictionary to workspace JSON`)
 - CSV/JSON API URL에 `https://` 자동 보정 및 URL 형식 검증 (`urlHelper`)
 - README / README.ko: 명령 팔레트, JSON 보내기, 전체 설정 표, 동기화·Output, 문제 해결 보강
 

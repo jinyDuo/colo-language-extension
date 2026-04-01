@@ -20,7 +20,7 @@ A VS Code extension that fetches multilingual data from Google Sheets and displa
 - 💾 **Local Caching**: Data is stored in local storage for offline use
 - 🔄 **Manual Sync**: Update to the latest data only when needed
 - 📝 **Multi-Sheet Support**: Fetch multiple sheets (WD, ST, CD, etc.) at once
-- 📤 **Export to workspace JSON**: Save synced dictionary as a JSON file in the workspace folder root (for review, CI, or sharing with teammates)
+- 📤 **Export to workspace JSON**: Save synced dictionary under a **configurable folder** (`workspaceExportJsonPath`, **required**) as `wd_lang.json`, `st_lang.json`, `cd_lang.json` (by key prefix) plus `other_lang.json` when needed; missing subfolders are created
 
 ### Complete Workflow
 
@@ -144,7 +144,7 @@ Open the Command Palette (`Ctrl + Shift + P` / `Cmd + Shift + P`) and run:
 | Command | What it does |
 |---------|----------------|
 | **Sheet Language Global Helper: Sheet Connect Sync** | Fetches data from your configured source (Service Account JSON, API Key, JSON URL, or CSV URL) and saves it to extension local storage for hover and inlay hints. |
-| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | Writes the **currently synced** dictionary to a JSON file in the **first workspace folder root**. Run **Sync** first if you have no data yet. |
+| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | Writes the **currently synced** dictionary under the folder set in **`workspaceExportJsonPath`** (relative to the **first workspace folder root**). **If that setting is empty, the command shows an error** — no default path. Files: `{path}/wd_lang.json` (`WD`), `{path}/st_lang.json` (`ST`), `{path}/cd_lang.json` (`CD`), `{path}/other_lang.json` (only if non-empty). Run **Sync** first if you have no data yet. |
 
 ### Data Synchronization
 
@@ -188,12 +188,14 @@ Use this when you want a **file on disk** (e.g. for code review, build scripts, 
 
 1. Run **Sheet Connect Sync** at least once so local storage has data.
 2. Open a **folder** in VS Code (not only single files without a workspace folder).
-3. Run **Sheet Language Global Helper: Export synced dictionary to workspace JSON**.
-4. A file appears in the **root of the first folder** in your workspace (default name: `sheet-language-dictionary.json`).
+3. Set **`workspaceExportJsonPath`** (e.g. `language` or `src/locales`). **Required** — if empty, the export command **shows an error**. No `..` segments; use a path relative to the first workspace folder root.
+4. Run **Sheet Language Global Helper: Export synced dictionary to workspace JSON**. The folder (and any missing parent segments) is created if needed, then files are written:
+   - **`{workspaceExportJsonPath}/wd_lang.json`** — code keys starting with `WD` (case-insensitive)
+   - **`{workspaceExportJsonPath}/st_lang.json`** — `ST`
+   - **`{workspaceExportJsonPath}/cd_lang.json`** — `CD`
+   - **`{workspaceExportJsonPath}/other_lang.json`** — any other keys (only if there is at least one)
 
-**Setting:** `languageHelper.workspaceExportJsonFileName` — change only the **file name** (no paths). Default: `sheet-language-dictionary.json`.
-
-**JSON shape** (object: code key → language code → text):
+**JSON shape** (each file is an object: code key → language code → text):
 
 ```json
 {
@@ -205,7 +207,7 @@ Use this when you want a **file on disk** (e.g. for code review, build scripts, 
 }
 ```
 
-**Multi-root workspaces:** The file is written under the **first** folder listed in the workspace. To use another folder, reorder folders or open that folder alone.
+**Multi-root workspaces:** The export path is resolved under the **first** folder listed in the workspace. To use another folder, reorder folders or open that folder alone.
 
 ### View Multilingual Info via Hover
 
@@ -277,7 +279,7 @@ Settings use the prefix `languageHelper.` (e.g. `languageHelper.sheetApiKey` in 
 | `hoverKeyPatterns` | Comma-separated patterns for hover/inlay (e.g. `WD,ST,CD`). | Optional | `WD,ST,CD` |
 | `showInlineTranslation` | Show inlay hints for translations. | Optional | `true` |
 | `inlineTranslationLanguage` | Language code for inlay text (`ko`, `en`, …). | Optional | `ko` |
-| `workspaceExportJsonFileName` | File name for **Export synced dictionary to workspace JSON** (workspace root only). | Optional | `sheet-language-dictionary.json` |
+| `workspaceExportJsonPath` | **Required for export:** relative folder under the first workspace root (e.g. `language`). Empty → export command errors. No `..`. | **Export** | (empty) |
 
 ### How It Works
 
@@ -339,6 +341,9 @@ flowchart TD
 
 ### Export JSON: "no workspace folder"
 - Open **File → Open Folder** so a folder is the workspace root, then run the export command again.
+
+### Export JSON: path setting empty / error
+- Set **`workspaceExportJsonPath`** (e.g. `language`). The export command **requires** this; it errors if blank.
 
 ### Export JSON: "no data"
 - Run **Sheet Connect Sync** first, then export again.
