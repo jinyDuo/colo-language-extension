@@ -6,7 +6,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
-- JSON 보내기: 코드 키 접두사별 `wd_lang.json`, `st_lang.json`, `cd_lang.json` (그 외는 `other_lang.json`). 저장 폴더는 **`workspaceExportJsonPath`**(필수, 비우면 오류). 설정 `workspaceExportJsonFileName` 제거
+## [0.0.21]
+
+- JSON 보내기: 코드 접두사별 `wd_lang.json`, `st_lang.json`, `cd_lang.json`, `other_lang.json`
+- 저장 경로 **`workspaceExportJsonPath`**(필수, 비우면 보내기 오류); 상대 경로·`..` 검증 (`workspaceExportPath` 유틸)
+- 단일 파일 설정 `workspaceExportJsonFileName` 제거
+- `workspaceExportJsonPath` 설정 설명 간소화(예: `language`)
 
 ## [0.0.20]
 
