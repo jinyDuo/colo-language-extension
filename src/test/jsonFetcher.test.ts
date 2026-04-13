@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
@@ -108,7 +109,8 @@ suite('JSON Fetcher Test Suite', () => {
 			assert.strictEqual(Object.keys(result).length, 3);
 			assert.strictEqual(result.WD001?.ko, '안녕하세요');
 			assert.strictEqual(result.WD001?.en, 'Hello');
-			assert.strictEqual(result.WD001?.ja, 'こんにちは');
+			assert.strictEqual(result.WD001?.jp, 'こんにちは');
+			assert.strictEqual(result.WD001?.ja, undefined);
 			assert.strictEqual(result.ST002?.ko, '반품 불가');
 			assert.strictEqual(result.ST002?.zh, '不可退货');
 			assert.strictEqual(result.CD003?.ko, '테스트');
@@ -154,7 +156,6 @@ suite('JSON Fetcher Test Suite', () => {
 				{ key: 'WD001', ko: '한국어', en: 'English' },
 				{ key: 'ST002', ko: '텍스트', en: 'Text' }
 			];
-			const axios = (await import('axios')).default;
 			const originalGet = axios.get;
 			(axios as { get: (url: string) => Promise<{ data: unknown }> }).get = async () => ({
 				data: mockArrayData
@@ -175,7 +176,6 @@ suite('JSON Fetcher Test Suite', () => {
 				WD001: { ko: '한국어', en: 'English' },
 				ST002: { ko: '텍스트', en: 'Text' }
 			};
-			const axios = (await import('axios')).default;
 			const originalGet = axios.get;
 			(axios as { get: (url: string) => Promise<{ data: unknown }> }).get = async () => ({
 				data: mockObjectData

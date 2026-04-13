@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { LanguageDictionary, LanguageEntry } from '../../shared/language-dictionary/types';
+import { normalizeLanguageDictionaryFromSheet } from '../../shared/language-dictionary/utils/normalizeLanguageDictionaryFromSheet';
 import { normalizeAndValidateUrl } from '../../shared/http-url/utils/urlHelper';
 import { handleApiError } from './errorHandler';
 
@@ -49,13 +50,15 @@ const parseObjectFormat = (data: Record<string, unknown>): LanguageDictionary =>
 };
 
 export const parseJsonToDictionary = (data: unknown): LanguageDictionary => {
+	let parsed: LanguageDictionary;
 	if (Array.isArray(data)) {
-		return parseArrayFormat(data);
+		parsed = parseArrayFormat(data);
+	} else if (isRecord(data)) {
+		parsed = parseObjectFormat(data);
+	} else {
+		throw new Error('JSON 응답은 배열 또는 객체 형태여야 합니다.');
 	}
-	if (isRecord(data)) {
-		return parseObjectFormat(data);
-	}
-	throw new Error('JSON 응답은 배열 또는 객체 형태여야 합니다.');
+	return normalizeLanguageDictionaryFromSheet(parsed);
 };
 
 export const fetchDictionaryFromJsonUrl = async (

@@ -51,7 +51,7 @@
           "enum": [
             "ko",
             "en",
-            "ja",
+            "jp",
             "zh",
             "es",
             "fr",
@@ -63,7 +63,7 @@
           "enumDescriptions": [
             "Korean / 한국어",
             "English / 영어",
-            "Japanese / 일본어",
+            "Japanese / 일본어 (jp)",
             "Chinese / 중국어",
             "Spanish / 스페인어",
             "French / 프랑스어",
@@ -109,7 +109,7 @@
           "type": "string",
           "default": "",
           "description": "Sheet JSON API URL (Priority 2) / 시트 JSON API URL (우선순위 2)",
-          "markdownDescription": "**English:** URL that returns JSON (alternative to API Key). Used when no API key is set. Response must be an array of `{ key, ko, en, ... }` or an object `{ \"WD001\": { \"ko\": \"...\", \"en\": \"...\" }, ... }`.\n\n**한국어:** JSON을 반환하는 URL (API 키 대안). API 키가 없을 때 사용합니다. 응답은 `[{ key, ko, en, ... }]` 배열 또는 `{ \"WD001\": { \"ko\": \"...\", \"en\": \"...\" }, ... }` 형태여야 합니다.",
+          "markdownDescription": "**English:** URL that returns JSON (alternative to API Key). Used when no API key is set. Response must be an array of `{ key, ko, en, jp, ... }` or an object `{ \"WD001\": { \"ko\": \"...\", \"en\": \"...\" }, ... }`. Legacy column `ja` is normalized to `jp` on import.\n\n**한국어:** JSON을 반환하는 URL (API 키 대안). API 키가 없을 때 사용합니다. 응답은 `[{ key, ko, en, jp, ... }]` 배열 또는 객체 형태여야 합니다. 시트에 `ja` 열이 있으면 가져올 때 `jp`로 통일합니다.",
           "order": 8
         },
         "languageHelper.sheetUrl": {
@@ -148,7 +148,7 @@
     "watch": "webpack --watch",
     "build": "webpack --mode production --devtool hidden-source-map",
     "package": "webpack --mode production --devtool hidden-source-map",
-    "compile-tests": "tsc -p . --outDir out",
+    "compile-tests": "rm -rf out && tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "lint": "eslint src",

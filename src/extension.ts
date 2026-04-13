@@ -7,21 +7,33 @@ import type { LanguageDictionary } from './shared/language-dictionary/types';
 
 export const activate = (context: vscode.ExtensionContext): void => {
 	let languageDictionary: LanguageDictionary = context.globalState.get<LanguageDictionary>('langData', {});
+	/** Queues sync runs so a slow/in-flight sync finishes before export reads `globalState`. */
+	let syncCompletionChain: Promise<void> = Promise.resolve();
 	const inlayHintsRefreshEmitter = new vscode.EventEmitter<void>();
 
-	const handleSyncCommand = (): void => {
-		syncLanguageData(context, languageDictionary).then((updatedDictionary) => {
-			languageDictionary = updatedDictionary;
-			inlayHintsRefreshEmitter.fire();
-		});
+	const runQueuedSyncJob = async (): Promise<void> => {
+		const updatedDictionary = await syncLanguageData(context, languageDictionary);
+		languageDictionary = updatedDictionary;
+		inlayHintsRefreshEmitter.fire();
 	};
 
-	const handleExportWorkspaceJsonCommand = (): void => {
+	const handleSyncCommand = (): void => {
+		syncCompletionChain = syncCompletionChain
+			.then(runQueuedSyncJob)
+			.catch(() => {
+				// Errors are already surfaced inside syncLanguageData
+			});
+	};
+
+	const handleExportWorkspaceJsonCommand = async (): Promise<void> => {
+		await syncCompletionChain;
 		languageDictionary = context.globalState.get<LanguageDictionary>('langData', languageDictionary);
-		exportLanguageDictionaryToWorkspaceJson(languageDictionary).catch((error: unknown) => {
+		try {
+			await exportLanguageDictionaryToWorkspaceJson(languageDictionary);
+		} catch (error: unknown) {
 			const message = error instanceof Error ? error.message : '알 수 없는 오류';
 			vscode.window.showErrorMessage(`JSON 저장 실패: ${message}`);
-		});
+		}
 	};
 
 	const handleProvideHover = (

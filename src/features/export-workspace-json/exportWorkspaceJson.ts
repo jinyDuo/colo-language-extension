@@ -5,6 +5,8 @@ import {
 	mergeDictionaryFromPrefixBuckets,
 	splitDictionaryByConfiguredSheetPrefixes
 } from '../../shared/language-dictionary/utils/languageDictionaryExportBuckets';
+import { filterLanguageDictionaryToDeclaredSheetLanguages } from '../../shared/language-dictionary/utils/filterLanguageDictionaryToDeclaredSheetLanguages';
+import { normalizeLanguageDictionaryFromSheet } from '../../shared/language-dictionary/utils/normalizeLanguageDictionaryFromSheet';
 import { parseWorkspaceExportPathSegments } from '../../shared/workspace-export/utils/workspaceExportPath';
 
 const ALL_LANGUAGE_FILE_NAME = 'all_language.json';
@@ -87,7 +89,9 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 		languageDictionary,
 		targetSheetNamesConfig
 	);
-	const allLanguageDictionary = mergeDictionaryFromPrefixBuckets(prefixBucketItems);
+	const allLanguageDictionary = filterLanguageDictionaryToDeclaredSheetLanguages(
+		normalizeLanguageDictionaryFromSheet(mergeDictionaryFromPrefixBuckets(prefixBucketItems))
+	);
 	const matchedKeyCount = Object.keys(allLanguageDictionary).length;
 
 	if (matchedKeyCount === 0) {
@@ -122,7 +126,10 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 			continue;
 		}
 		const fileName = buildExportFileNameFromSheetPrefix(sheetPrefix);
-		await writeJsonFile(exportDirectoryUri, fileName, dictionary, textEncoder);
+		const exportDictionary = filterLanguageDictionaryToDeclaredSheetLanguages(
+			normalizeLanguageDictionaryFromSheet(dictionary)
+		);
+		await writeJsonFile(exportDirectoryUri, fileName, exportDictionary, textEncoder);
 		writtenSummaryItems.push(`${exportPathDisplay}/${fileName} (${partialKeyCount}개)`);
 	}
 

@@ -1,6 +1,7 @@
 import type { ParseConfig, ParseResult } from 'papaparse';
 import { parse } from 'papaparse';
 import type { LanguageDictionary } from '../../language-dictionary/types';
+import { normalizeLanguageDictionaryFromSheet } from '../../language-dictionary/utils/normalizeLanguageDictionaryFromSheet';
 
 const hasCriticalErrors = (errors: ParseResult<any>['errors']): boolean => {
 	return errors.some(
@@ -57,7 +58,9 @@ const handleParseComplete = (
 			return;
 		}
 
-		const dictionary = buildDictionaryFromRows(parseResults.data);
+		const dictionary = normalizeLanguageDictionaryFromSheet(
+			buildDictionaryFromRows(parseResults.data)
+		);
 		resolve(dictionary);
 	};
 };
