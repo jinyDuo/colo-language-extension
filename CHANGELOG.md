@@ -6,6 +6,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.24]
+
+- 언어 코드: 설정·Export 기준을 **`jp`**로 통일(기존 시트/API의 **`ja` 열은 가져올 때 `jp`로 정규화**). 워크스페이스 JSON 보내기에는 **확장에서 선언한 언어 코드만** 포함.
+- 동기화가 느릴 때 Export가 **이전 데이터**를 쓰지 않도록, **진행 중인 동기화가 끝난 뒤** JSON 보내기가 실행되도록 함. Sync 요청은 **순차 큐**로 처리.
+- 테스트: `compile-tests` 전 `out` 정리, JSON URL 테스트의 axios 모킹을 동일 모듈 인스턴스로 수정.
+
 ## [0.0.23]
 
 - JSON 보내기: **`all_language.json`**은 **`targetSheetNames`** 접두에 맞는 키만 포함. **`other_lang.json`**은 생성하지 않음. 접두와 맞는 키가 없으면 경고 후 저장하지 않음.
