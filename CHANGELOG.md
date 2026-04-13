@@ -6,6 +6,10 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.26]
+
+- JSON 보내기: 시트(동기화 데이터)에 **실제로 존재하는 언어 열만** 키로 출력. 확장 허용 목록과 교집합하며, 시트에 없는 언어 코드는 JSON에 **포함하지 않음** (행이 나뉘면 열 이름은 전체 합집합 기준).
+
 ## [0.0.25]
 
 - 설정 **`languageHelper.japaneseLanguageCode`** (`ja` | `jp`, **기본 `ja`**): 시트·JSON에 선택한 이름의 일본어 **열·필드**가 있어야 하며, 맞지 않으면 **동기화·JSON 보내기**에서 오류.
