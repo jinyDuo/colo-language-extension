@@ -20,7 +20,7 @@ suite('Hover Provider Test Suite', () => {
 			WD000001: {
 				ko: '안녕하세요',
 				en: 'Hello',
-				jp: 'こんにちは'
+				ja: 'こんにちは'
 			},
 			ST000044: {
 				ko: '반품을 진행할 수 없는 건입니다.',
@@ -126,7 +126,7 @@ suite('Hover Provider Test Suite', () => {
 			WD000001: {
 				ko: '',
 				en: '',
-				jp: '   '
+				ja: '   '
 			}
 		};
 
@@ -179,7 +179,7 @@ suite('Hover Provider Test Suite', () => {
 			WD000001: {
 				ko: '안녕하세요',
 				en: '',
-				jp: '   ',
+				ja: '   ',
 				es: 'Hola'
 			}
 		};
@@ -198,7 +198,7 @@ suite('Hover Provider Test Suite', () => {
 				assert.ok(markdownString.value.includes('안녕하세요'));
 				assert.ok(markdownString.value.includes('Hola'));
 				assert.ok(!markdownString.value.includes('EN'));
-				assert.ok(!markdownString.value.includes('JP'));
+				assert.ok(!markdownString.value.includes('JA'));
 			}
 		}
 	});

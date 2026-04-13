@@ -1,42 +1,50 @@
+import type { JapaneseSheetLanguageCode } from '../constants/sheetLanguageCodes';
 import type { LanguageDictionary, LanguageEntry } from '../types';
 
 /**
- * Maps legacy `ja` column/key to `jp`. Prefers a non-empty `jp` value when both exist.
+ * Keeps a single Japanese key (`ja` or `jp`) per setting. Values come only from that column;
+ * the other code is not mirrored into storage.
  */
-export const normalizeLanguageEntryFromSheet = (entry: LanguageEntry): LanguageEntry => {
-	const lowerKeyToCell = new Map<string, { originalKey: string; value: string }>();
+export const normalizeLanguageEntryFromSheet = (
+	entry: LanguageEntry,
+	expectedJapanese: JapaneseSheetLanguageCode
+): LanguageEntry => {
+	let jaText = '';
+	let jpText = '';
+	const rest: LanguageEntry = {};
 	for (const [rawKey, rawValue] of Object.entries(entry)) {
-		lowerKeyToCell.set(rawKey.toLowerCase(), { originalKey: rawKey, value: rawValue });
-	}
-	const jaCell = lowerKeyToCell.get('ja');
-	const jpCell = lowerKeyToCell.get('jp');
-	const result: LanguageEntry = {};
-	for (const [lower, { originalKey, value }] of lowerKeyToCell) {
-		if (lower === 'ja' || lower === 'jp') {
-			continue;
+		const lower = rawKey.toLowerCase();
+		if (lower === 'ja') {
+			jaText = rawValue;
+		} else if (lower === 'jp') {
+			jpText = rawValue;
+		} else {
+			rest[rawKey] = rawValue;
 		}
-		result[originalKey] = value;
 	}
-	if (jaCell || jpCell) {
-		const jpText =
-			jpCell !== undefined && jpCell.value.trim() !== ''
-				? jpCell.value
-				: jaCell !== undefined
-					? jaCell.value
-					: jpCell !== undefined
-						? jpCell.value
-						: '';
-		result.jp = jpText;
+	const hadJapaneseColumnKey = Object.keys(entry).some((rawKey) => {
+		const lower = rawKey.toLowerCase();
+		return lower === 'ja' || lower === 'jp';
+	});
+	if (!hadJapaneseColumnKey) {
+		return rest;
 	}
-	return result;
+	if (expectedJapanese === 'ja') {
+		return { ...rest, ja: jaText };
+	}
+	return { ...rest, jp: jpText };
 };
 
 export const normalizeLanguageDictionaryFromSheet = (
-	languageDictionary: LanguageDictionary
+	languageDictionary: LanguageDictionary,
+	expectedJapanese: JapaneseSheetLanguageCode
 ): LanguageDictionary => {
 	const normalized: LanguageDictionary = {};
 	for (const codeKey of Object.keys(languageDictionary)) {
-		normalized[codeKey] = normalizeLanguageEntryFromSheet(languageDictionary[codeKey]);
+		normalized[codeKey] = normalizeLanguageEntryFromSheet(
+			languageDictionary[codeKey],
+			expectedJapanese
+		);
 	}
 	return normalized;
 };

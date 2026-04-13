@@ -27,7 +27,7 @@ suite('Inlay Hints Provider Test Suite', () => {
 			'프로그램 등록': {
 				ko: '프로그램 등록',
 				en: 'Program Registration',
-				jp: 'プログラム登録'
+				ja: 'プログラム登録'
 			}
 		};
 	};
