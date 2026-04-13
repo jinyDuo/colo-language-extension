@@ -6,6 +6,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.25]
+
+- 설정 **`languageHelper.japaneseLanguageCode`** (`ja` | `jp`, **기본 `ja`**): 시트·JSON에 선택한 이름의 일본어 **열·필드**가 있어야 하며, 맞지 않으면 **동기화·JSON 보내기**에서 오류.
+- 저장·워크스페이스 JSON export에는 일본어 키 **하나만** 포함 (`ja` 또는 `jp`).
+- 인라인 번역 언어에 `ja`·`jp` 선택지 유지.
+
 ## [0.0.24]
 
 - 언어 코드: 설정·Export 기준을 **`jp`**로 통일(기존 시트/API의 **`ja` 열은 가져올 때 `jp`로 정규화**). 워크스페이스 JSON 보내기에는 **확장에서 선언한 언어 코드만** 포함.
