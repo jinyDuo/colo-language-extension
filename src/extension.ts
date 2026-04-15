@@ -27,7 +27,19 @@ export const activate = (context: vscode.ExtensionContext): void => {
 
 	const handleExportWorkspaceJsonCommand = async (): Promise<void> => {
 		await syncCompletionChain;
-		languageDictionary = context.globalState.get<LanguageDictionary>('langData', languageDictionary);
+		try {
+			// Sheet is source of truth: same fetch/validate/persist as Sheet Connect Sync, then export that snapshot.
+			languageDictionary = await syncLanguageData(context, languageDictionary, {
+				suppressSuccessToast: true,
+				throwOnFetchFailure: true
+			});
+			inlayHintsRefreshEmitter.fire();
+		} catch {
+			vscode.window.showWarningMessage(
+				'시트에서 데이터를 가져오지 못해 JSON 보내기를 취소했습니다. (오류는 동기화 메시지를 참고하세요)'
+			);
+			return;
+		}
 		try {
 			await exportLanguageDictionaryToWorkspaceJson(languageDictionary);
 		} catch (error: unknown) {

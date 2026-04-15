@@ -97,16 +97,27 @@ const fetchCsvDataBySheetsApi = async (
 	);
 };
 
+export type SyncLanguageDataOptions = {
+	/**
+	 * When true: no green “동기화 완료” toast, and no toast for missing remote config / incomplete API setup
+	 * (used when Export runs the same fetch pipeline immediately before writing JSON).
+	 */
+	suppressSuccessToast?: boolean;
+	/** When true, rethrow after logging so callers (e.g. Export) can abort instead of writing stale JSON. */
+	throwOnFetchFailure?: boolean;
+};
+
 const saveDictionaryAndShowMessage = async (
 	context: vscode.ExtensionContext,
 	csvData: string,
 	method: string,
-	expectedJapaneseColumn: JapaneseSheetLanguageCode
+	expectedJapaneseColumn: JapaneseSheetLanguageCode,
+	syncOptions?: SyncLanguageDataOptions
 ): Promise<LanguageDictionary> => {
 	const freshDictionary = await parseCsvToDictionary(csvData, {
 		expectedJapaneseColumn
 	});
-	await persistDictionaryAndNotify(context, freshDictionary, method);
+	await persistDictionaryAndNotify(context, freshDictionary, method, syncOptions);
 	return freshDictionary;
 };
 
@@ -119,13 +130,16 @@ const getOutputChannel = (): vscode.OutputChannel => {
 const persistDictionaryAndNotify = async (
 	context: vscode.ExtensionContext,
 	freshDictionary: LanguageDictionary,
-	method: string
+	method: string,
+	syncOptions?: SyncLanguageDataOptions
 ): Promise<void> => {
 	await context.globalState.update('langData', freshDictionary);
 	const entryCount = Object.keys(freshDictionary).length;
 	const successMessage = `동기화 완료! (${entryCount}개 데이터, ${method} 사용)`;
 
-	vscode.window.showInformationMessage(successMessage);
+	if (!syncOptions?.suppressSuccessToast) {
+		vscode.window.showInformationMessage(successMessage);
+	}
 
 	const outputChannel = getOutputChannel();
 	outputChannel.appendLine(`[${new Date().toISOString()}] ${successMessage}`);
@@ -134,7 +148,8 @@ const persistDictionaryAndNotify = async (
 
 export const syncLanguageData = async (
 	context: vscode.ExtensionContext,
-	languageDictionary: LanguageDictionary
+	languageDictionary: LanguageDictionary,
+	syncOptions?: SyncLanguageDataOptions
 ): Promise<LanguageDictionary> => {
 	const config = vscode.workspace.getConfiguration('languageHelper');
 	const sheetServiceAccountJson = config.get<string>('sheetServiceAccountJson');
@@ -148,9 +163,11 @@ export const syncLanguageData = async (
 	const useSheetsApi = (sheetServiceAccountJson?.trim() ?? '') !== '' || (sheetApiKey?.trim() ?? '') !== '';
 
 	if (!useSheetsApi && !sheetJsonUrl && !sheetUrl) {
-		vscode.window.showErrorMessage(
-			'설정창에서 서비스 계정 JSON, 구글 시트 API 키, JSON API URL, 또는 CSV URL 중 하나를 입력해주세요!'
-		);
+		if (!syncOptions?.suppressSuccessToast) {
+			vscode.window.showErrorMessage(
+				'설정창에서 서비스 계정 JSON, 구글 시트 API 키, JSON API URL, 또는 CSV URL 중 하나를 입력해주세요!'
+			);
+		}
 		return languageDictionary;
 	}
 
@@ -167,7 +184,9 @@ export const syncLanguageData = async (
 			} else if (sheetApiKey?.trim()) {
 				credential = { type: 'apiKey', apiKey: sheetApiKey.trim() };
 			} else {
-				vscode.window.showErrorMessage('서비스 계정 JSON 또는 API 키를 입력해주세요.');
+				if (!syncOptions?.suppressSuccessToast) {
+					vscode.window.showErrorMessage('서비스 계정 JSON 또는 API 키를 입력해주세요.');
+				}
 				return languageDictionary;
 			}
 			const csvData = await fetchCsvDataBySheetsApi(
@@ -178,19 +197,31 @@ export const syncLanguageData = async (
 				targetSheetNamesConfig
 			);
 			const method = credential.type === 'oauth' ? '서비스 계정' : 'API';
-			return await saveDictionaryAndShowMessage(context, csvData, method, expectedJapaneseColumn);
+			return await saveDictionaryAndShowMessage(
+				context,
+				csvData,
+				method,
+				expectedJapaneseColumn,
+				syncOptions
+			);
 		}
 
 		if (sheetJsonUrl?.trim()) {
 			const freshDictionary = await fetchDictionaryFromJsonUrl(sheetJsonUrl, {
 				expectedJapaneseColumn
 			});
-			await persistDictionaryAndNotify(context, freshDictionary, 'JSON API');
+			await persistDictionaryAndNotify(context, freshDictionary, 'JSON API', syncOptions);
 			return freshDictionary;
 		}
 
 		const csvData = await fetchCsvDataByUrl(sheetUrl || '');
-		return await saveDictionaryAndShowMessage(context, csvData, 'CSV URL', expectedJapaneseColumn);
+		return await saveDictionaryAndShowMessage(
+			context,
+			csvData,
+			'CSV URL',
+			expectedJapaneseColumn,
+			syncOptions
+		);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
 		const fullMessage = `데이터를 가져오는데 실패했습니다: ${errorMessage}`;
@@ -200,6 +231,10 @@ export const syncLanguageData = async (
 		const outputChannel = getOutputChannel();
 		outputChannel.appendLine(`[${new Date().toISOString()}] ❌ ${fullMessage}`);
 		outputChannel.show();
+
+		if (syncOptions?.throwOnFetchFailure) {
+			throw error instanceof Error ? error : new Error(String(error));
+		}
 
 		return languageDictionary;
 	}

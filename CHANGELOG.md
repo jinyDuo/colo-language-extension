@@ -6,6 +6,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.27]
+
+- **JSON 보내기(Export)**: 실행 시 **Sheet Connect Sync와 동일한** 원격 가져오기·검증·파싱·`globalState` 저장을 한 번 수행한 뒤, 그 스냅샷만 워크스페이스 JSON에 기록. 가져오기 실패 시 **JSON 파일은 쓰지 않음**(경고만 표시; 상세 오류는 동기화와 동일하게 표시).
+- **동기화(`syncLanguageData`)**: Export 전용 옵션 `suppressSuccessToast` / `throwOnFetchFailure` 추가(성공·미설정 토스트 억제, 실패 시 재throw).
+- 명령 팔레트 제목: Export 동작을 **“시트를 먼저 가져온 뒤 JSON으로 보냄”**에 맞게 문구 조정.
+
 ## [0.0.26]
 
 - JSON 보내기: 시트(동기화 데이터)에 **실제로 존재하는 언어 열만** 키로 출력. 확장 허용 목록과 교집합하며, 시트에 없는 언어 코드는 JSON에 **포함하지 않음** (행이 나뉘면 열 이름은 전체 합집합 기준).

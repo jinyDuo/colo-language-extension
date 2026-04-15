@@ -2,7 +2,7 @@
   "name": "lang-global-helper",
   "displayName": "Sheet Language Global Helper",
   "description": "An extension that fetches multilingual data from Google Spreadsheets and displays it on hover in code",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "publisher": "language-global-helper",
   "icon": "global-hepler-logo.png",
   "repository": {
@@ -155,7 +155,7 @@
       },
       {
         "command": "languageHelper.exportWorkspaceJson",
-        "title": "Sheet Language Global Helper: Export synced dictionary to workspace JSON"
+        "title": "Sheet Language Global Helper: Export dictionary to JSON (fetch latest sheet first)"
       }
     ]
   },
