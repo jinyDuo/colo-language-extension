@@ -18,6 +18,7 @@ vsc-extension-quickstart.md
 **/.vscode-test.*
 .idea/**
 .cursor/**
+.claude/**
 **/*.vsix
 .eslintcache
 *.log

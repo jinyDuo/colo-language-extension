@@ -2,7 +2,7 @@
   "name": "lang-global-helper",
   "displayName": "Sheet Language Global Helper",
   "description": "An extension that fetches multilingual data from Google Spreadsheets and displays it on hover in code",
-  "version": "0.0.28",
+  "version": "0.0.29",
   "publisher": "language-global-helper",
   "icon": "global-hepler-logo.png",
   "repository": {
@@ -155,7 +155,7 @@
       },
       {
         "command": "languageHelper.exportWorkspaceJson",
-        "title": "Sheet Language Global Helper: Export dictionary to JSON (fetch latest sheet first)"
+        "title": "Export dictionary Sheet Sync to JSON(Overwrite)"
       }
     ]
   },
@@ -171,7 +171,8 @@
     "lint": "eslint src",
     "test": "vscode-test",
     "package:vsix": "vsce package --no-dependencies",
-    "publish:vsix": "vsce publish --no-dependencies -p $VSCE_PAT"
+    "publish:vsix": "vsce publish --no-dependencies -p $VSCE_PAT",
+    "release:vsix": "pnpm run lint && pnpm run package:vsix"
   },
   "dependencies": {
     "axios": "^1.7.9",

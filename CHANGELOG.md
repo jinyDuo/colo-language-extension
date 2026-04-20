@@ -6,6 +6,20 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.29]
+
+- **JSON 보내기(Export) 안정화**: 시트에서 가져온 직후 **반환된 사전만** 워크스페이스 JSON에 쓰고, `throwOnFetchFailure`로 가져오기 실패 시 **파일을 쓰지 않음**(이전 데이터 잔류 방지). 동기화 큐는 그대로 유지.
+- **동기화 로그**: `languageHelper.targetSheetNames`에 적힌 탭만 탭별 행 수 로그에 표시(`allSheetNames`로 전체 탭을 가져올 때도).
+- **동기화 로그**: 동기화 완료·탭별 줄을 Output과 동일 내용으로 **Debug Console(`console.log`)**에도 출력.
+- **명령 팔레트**: JSON 보내기 명령 제목을 **Sheet Language Global Helper: Sheet Sync to JSON**으로 정리.
+
+## [0.0.28]
+
+- **JSON 보내기(Export) 수정**: Export 실행 시 **Sheet Connect Sync와 완전히 동일한 코드 경로**(`runQueuedSyncJob`)로 최신 데이터를 가져온 뒤 JSON에 기록. 별도 Sync 실행 없이 항상 시트의 현재 상태가 반영됨. 이전 구현에서 다른 옵션으로 동기화를 호출하여 발생하던 구 데이터 잔류 문제 해결.
+- **동기화 로그 강화**: 시트 탭별 전체 행 수 및 A열(첫 열) 값이 있는 행 수를 Output 채널에 출력.
+- **Export 진단 로그**: 받은 키 수 → prefix 매칭 후 키 수 → 최종 언어 필터 후 키 수를 Output 채널("Sheet Language Global Helper")에 단계별 기록.
+- **명령 팔레트 제목 변경**: `Export synced dictionary to workspace JSON` → `Sheet Sync to JSON` (시트 가져오기 포함 동작 명칭 반영).
+
 ## [0.0.27]
 
 - **JSON 보내기(Export)**: 실행 시 **Sheet Connect Sync와 동일한** 원격 가져오기·검증·파싱·`globalState` 저장을 한 번 수행한 뒤, 그 스냅샷만 워크스페이스 JSON에 기록. 가져오기 실패 시 **JSON 파일은 쓰지 않음**(경고만 표시; 상세 오류는 동기화와 동일하게 표시).
