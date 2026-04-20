@@ -2,54 +2,56 @@ import * as vscode from 'vscode';
 import { exportLanguageDictionaryToWorkspaceJson } from './features/export-workspace-json/exportWorkspaceJson';
 import { provideHover } from './features/hover/hover';
 import { provideInlineHints } from './features/inline-hints/inlineHints';
-import { syncLanguageData } from './features/sync/sync';
+import { syncLanguageData, type SyncLanguageDataOptions } from './features/sync/sync';
 import type { LanguageDictionary } from './shared/language-dictionary/types';
 
 export const activate = (context: vscode.ExtensionContext): void => {
 	let languageDictionary: LanguageDictionary = context.globalState.get<LanguageDictionary>('langData', {});
 	/** Queues sync runs so a slow/in-flight sync finishes before export reads `globalState`. */
-	let syncCompletionChain: Promise<void> = Promise.resolve();
+	let syncCompletionChain: Promise<unknown> = Promise.resolve();
 	const inlayHintsRefreshEmitter = new vscode.EventEmitter<void>();
 
-	const runQueuedSyncJob = async (): Promise<void> => {
-		const updatedDictionary = await syncLanguageData(context, languageDictionary);
+	const runQueuedSyncJob = async (
+		syncOptions?: SyncLanguageDataOptions
+	): Promise<LanguageDictionary> => {
+		const updatedDictionary = await syncLanguageData(context, languageDictionary, syncOptions);
 		languageDictionary = updatedDictionary;
 		inlayHintsRefreshEmitter.fire();
+		return updatedDictionary;
 	};
 
 	const handleSyncCommand = (): void => {
 		syncCompletionChain = syncCompletionChain
-			.then(runQueuedSyncJob)
+			.then(() => runQueuedSyncJob())
 			.catch(() => {
 				// Errors are already surfaced inside syncLanguageData
 			});
 	};
 
-	const handleExportWorkspaceJsonCommand = async (): Promise<void> => {
-		await syncCompletionChain;
-		const previousDictionary = languageDictionary;
-		try {
-			// Sheet is source of truth: same fetch/validate/persist as Sheet Connect Sync, then export that snapshot.
-			languageDictionary = await syncLanguageData(context, languageDictionary, {
-				suppressSuccessToast: true,
-				throwOnFetchFailure: true
+	const handleExportWorkspaceJsonCommand = (): void => {
+		syncCompletionChain = syncCompletionChain
+			.then(async () => {
+				try {
+					const freshDictionary = await runQueuedSyncJob({
+						suppressSuccessToast: true,
+						throwOnFetchFailure: true
+					});
+					try {
+						await exportLanguageDictionaryToWorkspaceJson(freshDictionary);
+					} catch (error: unknown) {
+						const message = error instanceof Error ? error.message : '알 수 없는 오류';
+						vscode.window.showErrorMessage(`JSON 저장 실패: ${message}`);
+					}
+				} catch {
+					languageDictionary = context.globalState.get<LanguageDictionary>('langData', {});
+					vscode.window.showWarningMessage(
+						'시트에서 데이터를 가져오지 못해 JSON 보내기를 취소했습니다. (오류는 동기화 메시지를 참고하세요)'
+					);
+				}
+			})
+			.catch(() => {
+				// Unhandled rejections in the export job (should be rare)
 			});
-			inlayHintsRefreshEmitter.fire();
-		} catch {
-			// Restore in-memory dictionary and globalState (sync reset globalState to {} before the failed fetch).
-			languageDictionary = previousDictionary;
-			await context.globalState.update('langData', previousDictionary);
-			vscode.window.showWarningMessage(
-				'시트에서 데이터를 가져오지 못해 JSON 보내기를 취소했습니다. (오류는 동기화 메시지를 참고하세요)'
-			);
-			return;
-		}
-		try {
-			await exportLanguageDictionaryToWorkspaceJson(languageDictionary);
-		} catch (error: unknown) {
-			const message = error instanceof Error ? error.message : '알 수 없는 오류';
-			vscode.window.showErrorMessage(`JSON 저장 실패: ${message}`);
-		}
 	};
 
 	const handleExportWorkspaceJsonCommand = (): void => {

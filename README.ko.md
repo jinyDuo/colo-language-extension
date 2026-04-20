@@ -143,8 +143,8 @@ flowchart TD
 
 | 명령 | 설명 |
 |------|------|
-| **Sheet Language Global Helper: Sheet Connect Sync** | 설정한 소스(서비스 계정 JSON, API 키, JSON URL, CSV URL)에서 데이터를 가져와 확장 로컬 스토리지에 저장합니다. Hover·인레이 힌트에 사용됩니다. |
-| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | **`workspaceExportJsonPath`** 아래에 **`targetSheetNames`**(쉼표 구분, 비어 있으면 기본 `WD,ST,CD`) 접두에 맞는 키만 **`all_language.json`**(합집합)과 **`{접두사}_lang.json`**으로 저장. 매칭되는 키가 하나도 없으면 경고 후 저장하지 않음. 접두가 겹치면 **긴 쪽** 우선. **`workspaceExportJsonPath` 비우면 오류.** 먼저 **Sync** 실행. |
+| **Sheet Language Global Helper: Sheet Connect Sync** | 설정한 소스(서비스 계정 JSON, API 키, JSON URL, CSV URL)에서 데이터를 가져와 확장 로컬 스토리지에 저장합니다. Hover·인레이 힌트에 사용됩니다. Output 채널("Sheet Language Global Helper")에 전체 키 수와 시트 탭별 행 수가 기록됩니다. |
+| **Sheet Language Global Helper: Sheet Sync to JSON** | **최신 시트 데이터를 먼저 자동으로 가져온 뒤**(Sheet Connect Sync와 동일 경로), **`workspaceExportJsonPath`** 아래에 **`targetSheetNames`** 접두에 맞는 키만 **`all_language.json`**(합집합)과 **`{접두사}_lang.json`**으로 저장. 매칭되는 키가 없으면 경고 후 저장하지 않음. 접두가 겹치면 **긴 쪽** 우선. **`workspaceExportJsonPath` 비우면 오류.** 별도 Sync 없이 항상 최신 데이터 기록. 처리 단계별(받은 키 수 → prefix 매칭 후 → 필터 후) 로그가 Output 채널에 기록됩니다. |
 
 ### 데이터 동기화
 
@@ -182,15 +182,14 @@ flowchart LR
     style G fill:#c8e6c9,color:#000000
 ```
 
-### 동기화 데이터를 JSON 파일로 보내기
+### JSON 파일로 보내기 (Sheet Sync to JSON)
 
-확장이 메모리에 갖고 있는 것과 **같은 구조**의 파일을 디스크에 두고 싶을 때 사용합니다 (코드 리뷰, 빌드 스크립트, 문서화 등).
+**항상 시트의 현재 상태**를 디스크 파일로 저장하고 싶을 때 사용합니다 (코드 리뷰, 빌드 스크립트, 문서화 등).
 
-1. 최소 한 번 **Sheet Connect Sync**를 실행해 로컬 스토리지에 데이터를 채웁니다.
-2. VS Code에서 **폴더**를 연 상태여야 합니다 (파일만 단독으로 연 창이면 루트가 없을 수 있음).
-3. **`workspaceExportJsonPath`** 를 설정합니다 (예: `language`). **비우면 보내기 오류.** `..` 불가.
-4. 필요하면 **`targetSheetNames`**(대상 시트 이름 목록, 쉼표 구분)을 맞춥니다. 보내기 시 이 목록의 각 접두사마다 `{소문자접두사}_lang.json`이 생깁니다 (예: `WD,ST,CD` → `wd_lang.json` …). 키가 없는 접두사는 파일을 만들지 않습니다.
-5. **Export synced dictionary to workspace JSON** 실행 — 경로 폴더가 없으면 생성 후:
+1. VS Code에서 **폴더**를 연 상태여야 합니다 (파일만 단독으로 연 창이면 루트가 없을 수 있음).
+2. **`workspaceExportJsonPath`** 를 설정합니다 (예: `language`). **비우면 보내기 오류.** `..` 불가.
+3. 필요하면 **`targetSheetNames`**(대상 시트 이름 목록, 쉼표 구분)을 맞춥니다. 보내기 시 이 목록의 각 접두사마다 `{소문자접두사}_lang.json`이 생깁니다 (예: `WD,ST,CD` → `wd_lang.json` …). 키가 없는 접두사는 파일을 만들지 않습니다.
+4. **Sheet Sync to JSON** 실행 — 명령이 **시트에서 최신 데이터를 자동으로 가져온 뒤**(별도 Sync 불필요), 경로 폴더가 없으면 생성 후:
    - **`all_language.json`** — `targetSheetNames` 접두에 맞는 키만 모은 사전 (접두별 파일과 동일 키 집합의 합)
    - **`{접두사}_lang.json`** — 각 접두와 매칭되는 키만 (해당 키가 있을 때만 파일 생성)
 
@@ -344,8 +343,8 @@ flowchart TD
 ### JSON 보내기: 경로 설정 오류 / 비어 있음
 - **`workspaceExportJsonPath`** 에 예를 들어 `language` 를 입력하세요. 비어 있으면 보내기 명령은 의도적으로 오류를 냅니다.
 
-### JSON 보내기: "보낼 언어 데이터가 없습니다"
-- 먼저 **Sheet Connect Sync**를 실행한 뒤 다시 보내기 하세요.
+### JSON 보내기: "보낼 언어 데이터가 없습니다" / 접두 매칭 키 없음 경고
+- **`targetSheetNames`** 가 시트의 키 접두사와 일치하는지 확인하세요 (예: `WD,ST,CD`). 보내기 명령은 자동으로 최신 데이터를 가져오므로 별도 Sync 실행은 필요하지 않습니다.
 
 ### Hover가 작동하지 않음
 - 데이터 동기화를 먼저 실행했는지 확인

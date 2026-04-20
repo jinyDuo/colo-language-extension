@@ -143,8 +143,8 @@ Open the Command Palette (`Ctrl + Shift + P` / `Cmd + Shift + P`) and run:
 
 | Command | What it does |
 |---------|----------------|
-| **Sheet Language Global Helper: Sheet Connect Sync** | Fetches data from your configured source (Service Account JSON, API Key, JSON URL, or CSV URL) and saves it to extension local storage for hover and inlay hints. |
-| **Sheet Language Global Helper: Export synced dictionary to workspace JSON** | Writes under **`workspaceExportJsonPath`**: **`all_language.json`** (union of keys matching **`targetSheetNames`** prefixes) and one **`{prefix}_lang.json`** per configured prefix (only if that prefix has keys). Unmatched keys are omitted. If **no** key matches any prefix, export shows a warning and writes nothing. Longer prefixes win when overlapping. **Empty `workspaceExportJsonPath` → error.** Run **Sync** first if you have no data yet. |
+| **Sheet Language Global Helper: Sheet Connect Sync** | Fetches data from your configured source (Service Account JSON, API Key, JSON URL, or CSV URL) and saves it to extension local storage for hover and inlay hints. The Output channel ("Sheet Language Global Helper") logs the total count and per-tab row count for each fetched sheet. |
+| **Sheet Language Global Helper: Sheet Sync to JSON** | **Automatically fetches the latest sheet data first** (same path as Sheet Connect Sync), then writes under **`workspaceExportJsonPath`**: **`all_language.json`** (union of keys matching **`targetSheetNames`** prefixes) and one **`{prefix}_lang.json`** per prefix that has at least one key. Unmatched keys are omitted. Longer prefixes win when overlapping. **Empty `workspaceExportJsonPath` → error.** Each processing stage (keys received → after prefix match → after language filter) is logged to the Output channel. |
 
 ### Data Synchronization
 
@@ -182,15 +182,14 @@ flowchart LR
     style G fill:#c8e6c9,color:#000000
 ```
 
-### Export synced data to a JSON file
+### Export to a JSON file (Sheet Sync to JSON)
 
-Use this when you want a **file on disk** (e.g. for code review, build scripts, or documentation) with the same structure the extension uses in memory.
+Use this when you want a **file on disk** (e.g. for code review, build scripts, or documentation) always reflecting the **current sheet state**.
 
-1. Run **Sheet Connect Sync** at least once so local storage has data.
-2. Open a **folder** in VS Code (not only single files without a workspace folder).
-3. Set **`workspaceExportJsonPath`** (e.g. `language` or `src/locales`). **Required** — if empty, the export command **shows an error**. No `..` segments; use a path relative to the first workspace folder root.
-4. Optionally adjust **`targetSheetNames`** (comma-separated sheet/prefix list, same as sync). Export uses this list to split keys: e.g. `WD,ST,MS` → `wd_lang.json`, `st_lang.json`, `ms_lang.json` (only files with at least one key are created).
-5. Run **Sheet Language Global Helper: Export synced dictionary to workspace JSON**. The folder (and any missing parent segments) is created if needed, then:
+1. Open a **folder** in VS Code (not only single files without a workspace folder).
+2. Set **`workspaceExportJsonPath`** (e.g. `language` or `src/locales`). **Required** — if empty, the export command **shows an error**. No `..` segments; use a path relative to the first workspace folder root.
+3. Optionally adjust **`targetSheetNames`** (comma-separated sheet/prefix list, same as sync). Export uses this list to split keys: e.g. `WD,ST,MS` → `wd_lang.json`, `st_lang.json`, `ms_lang.json` (only files with at least one key are created).
+4. Run **Sheet Language Global Helper: Sheet Sync to JSON**. The command **fetches the latest data from the sheet first** (no separate Sync needed), then the folder (and any missing parent segments) is created if needed:
    - **`all_language.json`** — only keys whose code starts with one of the **`targetSheetNames`** prefixes (same union as the per-prefix files)
    - **`{lowercasePrefix}_lang.json`** — one per **`targetSheetNames`** entry that has at least one matching key (empty prefixes are skipped)
 
@@ -344,8 +343,8 @@ flowchart TD
 ### Export JSON: path setting empty / error
 - Set **`workspaceExportJsonPath`** (e.g. `language`). The export command **requires** this; it errors if blank.
 
-### Export JSON: "no data"
-- Run **Sheet Connect Sync** first, then export again.
+### Export JSON: "no data" / warning about no matching keys
+- Check that **`targetSheetNames`** matches the key prefixes in your sheet (e.g. `WD,ST,CD`). The export fetches fresh data automatically, so a separate Sync is not required.
 
 ### Hover Not Working
 - Make sure data synchronization has been run first

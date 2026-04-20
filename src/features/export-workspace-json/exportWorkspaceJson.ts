@@ -46,10 +46,17 @@ const writeJsonFile = async (
 	await vscode.workspace.fs.writeFile(targetUri, textEncoder.encode(jsonText));
 };
 
+const OUTPUT_CHANNEL_NAME = 'Sheet Language Global Helper';
+
 export const exportLanguageDictionaryToWorkspaceJson = async (
 	languageDictionary: LanguageDictionary
 ): Promise<void> => {
+	const outputChannel = vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
+	const ts = () => new Date().toISOString();
+
 	const keyCount = Object.keys(languageDictionary).length;
+	outputChannel.appendLine(`[${ts()}] [export] 받은 딕셔너리: ${keyCount}개`);
+
 	if (keyCount === 0) {
 		vscode.window.showWarningMessage(
 			'보낼 언어 데이터가 없습니다. 먼저 동기화(Sheet Connect Sync)를 실행하세요.'
@@ -100,6 +107,7 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 		targetSheetNamesConfig
 	);
 	const mergedForExport = mergeDictionaryFromPrefixBuckets(prefixBucketItems);
+	outputChannel.appendLine(`[${ts()}] [export] prefix 매칭 후 mergedForExport: ${Object.keys(mergedForExport).length}개`);
 	try {
 		assertExpectedJapaneseSheetColumnPresent(mergedForExport, preferredJapanese);
 	} catch (error) {
@@ -107,6 +115,7 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 			error instanceof Error
 				? error.message
 				: 'JSON 보내기: 일본어 열 설정과 데이터가 맞지 않습니다.';
+		outputChannel.appendLine(`[${ts()}] [export] ❌ 일본어 열 검증 실패: ${message}`);
 		vscode.window.showErrorMessage(message);
 		return;
 	}
@@ -115,8 +124,10 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 		sheetLanguageCodeItems
 	);
 	const matchedKeyCount = Object.keys(allLanguageDictionary).length;
+	outputChannel.appendLine(`[${ts()}] [export] 최종 언어 필터링 후: ${matchedKeyCount}개`);
 
 	if (matchedKeyCount === 0) {
+		outputChannel.appendLine(`[${ts()}] [export] ❌ matchedKeyCount=0 → 쓰기 중단`);
 		vscode.window.showWarningMessage(
 			'설정한 targetSheetNames 접두와 일치하는 키가 없습니다. 접두를 확인한 뒤 다시 시도하세요.'
 		);
@@ -139,6 +150,7 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 	const textEncoder = new TextEncoder();
 	const writtenSummaryItems: string[] = [];
 
+	outputChannel.appendLine(`[${ts()}] [export] 쓰기 시작 → ${exportPathDisplay}/`);
 	await writeJsonFile(exportDirectoryUri, ALL_LANGUAGE_FILE_NAME, allLanguageDictionary, textEncoder);
 	writtenSummaryItems.push(`${exportPathDisplay}/${ALL_LANGUAGE_FILE_NAME} (${matchedKeyCount}개)`);
 
@@ -158,8 +170,6 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 
 	const successMessage = `언어 데이터를 저장했습니다: ${writtenSummaryItems.join(', ')}`;
 	vscode.window.showInformationMessage(successMessage);
-
-	const outputChannel = vscode.window.createOutputChannel('Sheet Language Global Helper');
-	outputChannel.appendLine(`[${new Date().toISOString()}] ${successMessage}`);
+	outputChannel.appendLine(`[${ts()}] ${successMessage}`);
 	outputChannel.show();
 };

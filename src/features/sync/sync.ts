@@ -112,6 +112,46 @@ const fetchCsvDataBySheetsApi = async (
 	);
 };
 
+const resolveTargetSheetNameItemsForLog = (targetSheetNamesConfig: string): string[] => {
+	const rawConfig = targetSheetNamesConfig.trim() || DEFAULT_TARGET_SHEET_NAMES;
+	return parseSheetNames(rawConfig);
+};
+
+/** Keeps only tabs listed in `languageHelper.targetSheetNames` (same order) for sync log lines. */
+const filterSheetTabFetchSummariesToTargetSheetNames = (
+	sheetTabFetchSummaries: SheetTabFetchSummary[],
+	targetSheetNamesConfig: string
+): SheetTabFetchSummary[] => {
+	const targetNameItems = resolveTargetSheetNameItemsForLog(targetSheetNamesConfig);
+	if (targetNameItems.length === 0) {
+		return sheetTabFetchSummaries;
+	}
+	const allowedTitleUpperSet = new Set(
+		targetNameItems
+			.map((name) => name.trim().toUpperCase())
+			.filter((name) => name.length > 0)
+	);
+	const summaryByTitleUpper = new Map<string, SheetTabFetchSummary>();
+	for (const summary of sheetTabFetchSummaries) {
+		const titleUpper = summary.sheetTitle.trim().toUpperCase();
+		if (allowedTitleUpperSet.has(titleUpper)) {
+			summaryByTitleUpper.set(titleUpper, summary);
+		}
+	}
+	const orderedSummaries: SheetTabFetchSummary[] = [];
+	for (const name of targetNameItems) {
+		const titleUpper = name.trim().toUpperCase();
+		if (titleUpper.length === 0) {
+			continue;
+		}
+		const summary = summaryByTitleUpper.get(titleUpper);
+		if (summary) {
+			orderedSummaries.push(summary);
+		}
+	}
+	return orderedSummaries;
+};
+
 export type SyncLanguageDataOptions = {
 	/**
 	 * When true: no green “동기화 완료” toast, and no toast for missing remote config / incomplete API setup
@@ -240,6 +280,10 @@ export const syncLanguageData = async (
 				isAllSheetNames,
 				targetSheetNamesConfig
 			);
+			const sheetTabFetchSummariesForLog = filterSheetTabFetchSummariesToTargetSheetNames(
+				sheetTabFetchSummaries,
+				targetSheetNamesConfig
+			);
 			const method = credential.type === 'oauth' ? '서비스 계정' : 'API';
 			return await saveDictionaryAndShowMessage(
 				context,
@@ -247,7 +291,7 @@ export const syncLanguageData = async (
 				method,
 				expectedJapaneseColumn,
 				syncOptions,
-				sheetTabFetchSummaries
+				sheetTabFetchSummariesForLog
 			);
 		}
 
