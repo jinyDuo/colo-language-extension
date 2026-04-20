@@ -20,7 +20,7 @@
 - 💾 **로컬 캐싱**: 데이터를 로컬 스토리지에 저장하여 오프라인에서도 사용 가능
 - 🔄 **수동 동기화**: 원할 때만 최신 데이터로 업데이트
 - 📝 **다중 시트 지원**: 여러 시트(WD, ST, CD 등)를 한 번에 가져오기
-- 📤 **워크스페이스 JSON 보내기**: **`workspaceExportJsonPath`**(필수) 아래에 **`targetSheetNames`**에 맞는 키만 **`all_language.json`** 및 **`{접두사}_lang.json`**으로 저장. 접두에 안 맞는 키는 파일로 보내지 않음
+- 📤 **워크스페이스 JSON 보내기**: **`workspaceExportJsonPath`**(필수) 아래에 **`targetSheetNames`** 문자열을 **키 접두어**로 보고 **`all_language.json`**·**`{접두사}_lang.json`**으로 저장. **`allSheetNames`를 켜 두면** 병합 사전에 모든 탭이 들어가므로 `cd_lang.json` 등은 **해당 탭 행만**이 아니라 **합쳐진 키 전체**에서 접두 매칭. 접두에 안 맞는 키는 파일로 보내지 않음
 
 ### 전체 워크플로우
 
@@ -79,7 +79,8 @@ VS Code에서 `Ctrl + ,` (또는 `Cmd + ,` on Mac)를 눌러 설정을 열고, �
 3. **VS Code 설정**
    - **Sheet Service Account Json**: JSON 키 파일 **내용 전체**를 붙여넣기 (파일 경로가 아님)
    - **Sheet Id** 또는 **Sheet Url**: 스프레드시트 ID 또는 전체 URL
-   - **All Sheet Names** / **Target Sheet Names**: 가져올 시트 선택
+   - **All Sheet Names**: 켜면 **모든 탭**을 가져와 한 사전으로 합침. 끄면 **`targetSheetNames`에 적은 탭 이름**만 가져옴.
+   - **Target Sheet Names**: 위와 별개로 **항상** JSON 보내기·접두 분할에 쓰이며, 동기화 Output의 **탭별 행 수** 줄에도 이 목록이 반영됨(접두어 = 키 코드가 `CD`로 시작하면 `cd_lang.json` 등).
 
 #### 방법 2: Google Sheets API 키 (우선순위 2)
 
@@ -93,7 +94,7 @@ VS Code에서 `Ctrl + ,` (또는 `Cmd + ,` on Mac)를 눌러 설정을 열고, �
 3. **VS Code 설정**
    - **Sheet Api Key**: API 키 입력
    - **Sheet Id**: 스프레드시트 ID 또는 URL
-   - **All Sheet Names** / **Target Sheet Names**: 필요에 따라 설정
+   - **All Sheet Names** / **Target Sheet Names**: 방법 1과 동일. **전 탭 병합**과 **지정 탭만**, **JSON은 키 접두 기준**임을 참고.
 
 #### 방법 3: JSON API URL (우선순위 2 대안)
 
@@ -188,7 +189,7 @@ flowchart LR
 
 1. VS Code에서 **폴더**를 연 상태여야 합니다 (파일만 단독으로 연 창이면 루트가 없을 수 있음).
 2. **`workspaceExportJsonPath`** 를 설정합니다 (예: `language`). **비우면 보내기 오류.** `..` 불가.
-3. 필요하면 **`targetSheetNames`**(대상 시트 이름 목록, 쉼표 구분)을 맞춥니다. 보내기 시 이 목록의 각 접두사마다 `{소문자접두사}_lang.json`이 생깁니다 (예: `WD,ST,CD` → `wd_lang.json` …). 키가 없는 접두사는 파일을 만들지 않습니다.
+3. **`targetSheetNames`**(쉼표 구분)을 맞춥니다. 보내기에서는 이 목록을 **구글 탭 이름이 아니라 키 코드 접두어**로 사용합니다—각 항목마다 `{소문자접두사}_lang.json`이 생기고, **합쳐진 사전**에서 그 접두로 시작하는 키가 모두 들어갑니다. **`allSheetNames`가 켜져 있으면** 다른 탭의 `CD…` 키도 `cd_lang.json`에 포함될 수 있습니다. 키가 없는 접두는 파일을 만들지 않습니다.
 4. **Sheet Sync to JSON** 실행 — 명령이 **시트에서 최신 데이터를 자동으로 가져온 뒤**(별도 Sync 불필요), 경로 폴더가 없으면 생성 후:
    - **`all_language.json`** — `targetSheetNames` 접두에 맞는 키만 모은 사전 (접두별 파일과 동일 키 집합의 합)
    - **`{접두사}_lang.json`** — 각 접두와 매칭되는 키만 (해당 키가 있을 때만 파일 생성)
@@ -276,12 +277,12 @@ t("프로그램 등록");     // → Program Registration (시트 key가 한글 
 | `sheetJsonUrl` | 사전 형태 JSON을 반환하는 **URL** (우선순위 2 대안) | JSON URL 사용 시 | (빈 값) |
 | `sheetId` | 스프레드시트 ID (`sheetUrl`에 전체 URL이 있으면 생략 가능) | Sheets API 사용 시 | (빈 값) |
 | `sheetUrl` | 웹에 게시한 **CSV** URL (우선순위 3) | CSV만 사용 시 | (빈 값) |
-| `allSheetNames` | 스프레드시트의 모든 시트 가져오기 | 선택 | `true` |
-| `targetSheetNames` | `allSheetNames`가 꺼져 있을 때 가져올 시트 이름 (쉼표 구분) | 선택 | `WD,ST,CD` |
+| `allSheetNames` | `true`면 **모든 탭** fetch 후 **한 사전으로 병합**. `false`면 `targetSheetNames`의 **탭 이름**만 fetch | 선택 | `true` |
+| `targetSheetNames` | **`allSheetNames` off:** 가져올 **탭 이름** 목록. **항상:** JSON 보내기·접두 분할용 **키 접두어** + Sync Output 탭 로그(쉼표 구분) | 선택 | `WD,ST,CD` |
 | `hoverKeyPatterns` | Hover/인레이 힌트에서 쓸 키 패턴 (쉼표 구분, 예: `WD,ST,CD`) | 선택 | `WD,ST,CD` |
 | `showInlineTranslation` | 인라인 번역(인레이 힌트) 표시 | 선택 | `true` |
 | `inlineTranslationLanguage` | 인라인에 쓸 언어 코드 (`ko`, `en` 등) | 선택 | `ko` |
-| `workspaceExportJsonPath` | **JSON 보내기 필수:** 첫 워크스페이스 루트 기준 상대 폴더 (예: `language`). 비우면 보내기 명령 오류. `..` 불가 | **보내기** | (빈 값) |
+| `workspaceExportJsonPath` | **JSON 보내기 필수.** 위 병합 사전에서 `targetSheetNames` **접두**로만 파일 생성; `allSheetNames` on이면 **탭 한 장 분리가 아님**. 첫 루트 기준 상대 경로(예: `language`). 비우면 오류. `..` 불가 | **보내기** | (빈 값) |
 
 ### 동작 방식
 
@@ -317,6 +318,7 @@ flowchart TD
   - `allSheetNames` 체크 → 모든 시트 가져오기
   - `allSheetNames` 해제 → `targetSheetNames` 지정 시트만 가져오기
 - **API 키 없음**: CSV URL 사용 (단일 시트만 지원)
+- **`targetSheetNames`는 한 줄로 두 가지**: fetch 제한용 **탭 이름**( `allSheetNames` off일 때만) + **항상** JSON·로그용 **키 접두어**. 전 탭 병합 시 `cd_lang.json`은 **CD 탭 행만**이 아닙니다.
 
 ## 📝 스프레드시트 형식
 
