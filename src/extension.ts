@@ -36,8 +36,10 @@ export const activate = (context: vscode.ExtensionContext): void => {
 						suppressSuccessToast: true,
 						throwOnFetchFailure: true
 					});
+					const dictionarySnapshotForJsonExport =
+						context.globalState.get<LanguageDictionary>('langData', freshDictionary);
 					try {
-						await exportLanguageDictionaryToWorkspaceJson(freshDictionary);
+						await exportLanguageDictionaryToWorkspaceJson(dictionarySnapshotForJsonExport);
 					} catch (error: unknown) {
 						const message = error instanceof Error ? error.message : '알 수 없는 오류';
 						vscode.window.showErrorMessage(`JSON 저장 실패: ${message}`);
