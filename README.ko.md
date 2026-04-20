@@ -412,31 +412,39 @@ flowchart TD
     style J fill:#c8e6c9,color:#000000
 ```
 
-### 배포 명령어
+### 배포 명령어 (로컬)
+
+프로젝트에 `@vscode/vsce`가 devDependency로 있으므로 **전역 설치는 필수 아님**.
 
 ```bash
-# 1. vsce 설치
-pnpm add -g @vscode/vsce
+pnpm install
 
-# 2. 빌드
-pnpm run build
+# ESLint + webpack(production) + VSIX 생성 (루트에 *.vsix)
+pnpm run release:vsix
 
-# 3. VSIX 패키징
-pnpm run package:vsix
-
-# 4. 배포 (의존성 체크 건너뛰기)
-vsce publish --no-dependencies -p <YOUR_PERSONAL_ACCESS_TOKEN>
+# VS Marketplace에 올리기 (Azure DevOps PAT 필요)
+export VSCE_PAT="<YOUR_PERSONAL_ACCESS_TOKEN>"
+pnpm run publish:vsix
 ```
+
+마켓 게시 스크립트는 환경 변수 **`VSCE_PAT`** 를 사용합니다 (`package.json`의 `publish:vsix`).
+
+### GitHub Actions로 VSIX만 만들기
+
+1. 저장소 **Settings → Secrets and variables → Actions** 에 **`VSCE_PAT`** 등록 (마켓에 게시할 때만 필요).
+2. **Actions → Release extension → Run workflow**
+   - 기본: VSIX 빌드 후 **아티팩트**로 `*.vsix` 다운로드 가능.
+   - **publish_marketplace** 를 `true`로 하면 같은 워크플로에서 `pnpm run publish:vsix` 실행 (비밀 `VSCE_PAT` 필요).
 
 ### 업데이트 배포
 
-⚠️ **중요**: 코드 수정 후 재배포 시 반드시 `package.json`의 `version`을 올려야 합니다.
+⚠️ **중요**: 마켓플레이스에 다시 올릴 때마다 `package.json`의 **`version`** 과 **`CHANGELOG.md`** 를 맞춰 올리세요.
 
 ```bash
-# 1. package.json에서 version 업데이트 (예: 0.0.1 → 0.0.2)
-# 2. 빌드 및 배포
-pnpm run build
-vsce publish --no-dependencies -p <TOKEN>
+# 1) version / CHANGELOG 반영 후
+pnpm run release:vsix
+export VSCE_PAT="..."
+pnpm run publish:vsix
 ```
 
 ### 아이콘 적용

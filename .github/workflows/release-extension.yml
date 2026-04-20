@@ -1,0 +1,57 @@
+# VSIX 빌드 및(선택) VS Marketplace 게시
+# 사용법:
+# 1) GitHub 저장소 → Settings → Secrets and variables → Actions → New repository secret
+#    이름: VSCE_PAT  값: Azure DevOps Personal Access Token (Marketplace publish 권한)
+# 2) Actions 탭 → "Release extension" → Run workflow
+#    - publish_marketplace: VSCE_PAT가 있을 때만 true로 두세요.
+
+name: Release extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_marketplace:
+        description: 'Publish to VS Marketplace (requires VSCE_PAT secret)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint and package VSIX
+        run: pnpm run release:vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lang-global-helper-vsix
+          path: '*.vsix'
+          if-no-files-found: error
+
+      - name: Publish to Visual Studio Marketplace
+        if: ${{ inputs.publish_marketplace == true }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: pnpm run publish:vsix

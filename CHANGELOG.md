@@ -6,10 +6,14 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.30]
+
 - **코드**: Output 채널 이름·생성 로직을 `src/shared/extension-output/sheetLanguageHelperOutputChannel.ts`로 통합; 동기화·JSON 보내기에서 공유.
 - **동기화**: 원격 가져오기 실패 시(일반 Sync, `throwOnFetchFailure` 없음) **`langData`를 비우고 `{}` 반환** — 이전 사전을 “동기화된 것처럼” 돌려주지 않음.
 - **JSON 보내기 로그**: 생성 폴더 경로·총계·`JSON별 키 수`(파일별 줄바꿈)·저장 완료; Debug Console은 동일 정보를 짧은 여러 줄로.
 - **문서**: README / README.ko — 명령 설명, 실패 시 동작, 로그 형식 반영.
+- **문서·설정**: `allSheetNames` / `targetSheetNames` / JSON 보내기 관계(전 탭 병합 vs 키 접두 분할, `targetSheetNames` 이중 역할)를 README·`package.json` 설정 설명에 보강.
+- **배포**: GitHub Actions로 VSIX 빌드·아티팩트 업로드(수동 실행); README 배포 명령을 `release:vsix` / `publish:vsix` 기준으로 정리. 명령 팔레트 JSON 보내기 제목을 **Sheet Sync to JSON**과 일치. `.vscodeignore`에 `.github/**` 추가로 VSIX에 워크플로 미포함.
 
 ## [0.0.29]
 

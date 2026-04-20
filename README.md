@@ -20,7 +20,7 @@ A VS Code extension that fetches multilingual data from Google Sheets and displa
 - 💾 **Local Caching**: Data is stored in local storage for offline use
 - 🔄 **Manual Sync**: Update to the latest data only when needed
 - 📝 **Multi-Sheet Support**: Fetch multiple sheets (WD, ST, CD, etc.) at once
-- 📤 **Export to workspace JSON**: Under **`workspaceExportJsonPath`** (**required**): **`all_language.json`** and **`{prefix}_lang.json`** files contain **only** keys that match **Target Sheet Names** (`targetSheetNames`). Keys that match no prefix are **not** written to disk.
+- 📤 **Export to workspace JSON**: Under **`workspaceExportJsonPath`** (**required**): **`targetSheetNames`** is treated as **key code prefixes** for **`all_language.json`** and **`{prefix}_lang.json`**. With **`allSheetNames`** on, the merged dictionary includes **every tab**, so e.g. `cd_lang.json` is **not** “CD tab rows only”—any `CD…` key from any tab is included. Keys that match no prefix are **not** written to disk.
 
 ### Complete Workflow
 
@@ -79,7 +79,8 @@ Also ensure **Editor: Inlay Hints** is set to `on` in VS Code settings so inline
 3. **VS Code Settings**
    - **Sheet Service Account Json**: Paste the **entire contents** of the JSON key file (not the file path)
    - **Sheet Id** or **Sheet Url**: Spreadsheet ID or full URL
-   - **All Sheet Names** / **Target Sheet Names**: Choose which sheets to fetch
+   - **All Sheet Names**: When on, **all tabs** are fetched and merged into **one** dictionary. When off, only tabs listed in **`targetSheetNames`** are fetched (as **Google Sheet tab names**).
+   - **Target Sheet Names**: **Always** used as **key prefixes** for JSON export and for **which tabs appear** in Sync Output row-count lines—not “export this tab’s rows only” when all sheets are on.
 
 #### Method 2: Google Sheets API Key (Priority 2)
 
@@ -93,7 +94,7 @@ Also ensure **Editor: Inlay Hints** is set to `on` in VS Code settings so inline
 3. **VS Code Settings**
    - **Sheet Api Key**: Enter your API key
    - **Sheet Id**: Spreadsheet ID or full URL
-   - **All Sheet Names** / **Target Sheet Names**: As needed
+   - **All Sheet Names** / **Target Sheet Names**: Same as Method 1—**full merge vs listed tabs**, and **export splits by key prefix**, not by tab ownership.
 
 #### Method 3: JSON API URL (Priority 2 alternative)
 
@@ -188,7 +189,7 @@ Use this when you want a **file on disk** (e.g. for code review, build scripts, 
 
 1. Open a **folder** in VS Code (not only single files without a workspace folder).
 2. Set **`workspaceExportJsonPath`** (e.g. `language` or `src/locales`). **Required** — if empty, the export command **shows an error**. No `..` segments; use a path relative to the first workspace folder root.
-3. Optionally adjust **`targetSheetNames`** (comma-separated sheet/prefix list, same as sync). Export uses this list to split keys: e.g. `WD,ST,MS` → `wd_lang.json`, `st_lang.json`, `ms_lang.json` (only files with at least one key are created).
+3. Adjust **`targetSheetNames`** as needed (comma-separated). For export, entries are **key code prefixes** on the **merged** dictionary—e.g. `WD,ST,MS` → `wd_lang.json`, `st_lang.json`, `ms_lang.json`. With **`allSheetNames`** on, a `CD…` key on **any** tab can land in `cd_lang.json`. Only prefixes with at least one key create a file.
 4. Run **Sheet Language Global Helper: Sheet Sync to JSON**. The command **fetches the latest data from the sheet first** (no separate Sync needed), then the folder (and any missing parent segments) is created if needed:
    - **`all_language.json`** — only keys whose code starts with one of the **`targetSheetNames`** prefixes (same union as the per-prefix files)
    - **`{lowercasePrefix}_lang.json`** — one per **`targetSheetNames`** entry that has at least one matching key (empty prefixes are skipped)
@@ -276,12 +277,12 @@ Settings use the prefix `languageHelper.` (e.g. `languageHelper.sheetApiKey` in 
 | `sheetJsonUrl` | URL returning JSON dictionary (array or object shape) (Priority 2 alt.). | If using JSON URL | (empty) |
 | `sheetId` | Spreadsheet ID (optional if `sheetUrl` contains the URL). | For Sheets API | (empty) |
 | `sheetUrl` | Published **CSV** URL (Priority 3). | If using CSV only | (empty) |
-| `allSheetNames` | Fetch all sheets in the spreadsheet. | Optional | `true` |
-| `targetSheetNames` | Comma-separated sheet names when `allSheetNames` is off. | Optional | `WD,ST,CD` |
+| `allSheetNames` | If `true`, fetch **every tab** and merge into **one** dictionary. If `false`, fetch only tabs named in `targetSheetNames`. | Optional | `true` |
+| `targetSheetNames` | **When `allSheetNames` is off:** comma-separated **tab names** to fetch. **Always:** same strings are **key prefixes** for JSON export + Sync Output tab lines. | Optional | `WD,ST,CD` |
 | `hoverKeyPatterns` | Comma-separated patterns for hover/inlay (e.g. `WD,ST,CD`). | Optional | `WD,ST,CD` |
 | `showInlineTranslation` | Show inlay hints for translations. | Optional | `true` |
 | `inlineTranslationLanguage` | Language code for inlay text (`ko`, `en`, …). | Optional | `ko` |
-| `workspaceExportJsonPath` | **Required for export:** relative folder under the first workspace root (e.g. `language`). Empty → export command errors. No `..`. | **Export** | (empty) |
+| `workspaceExportJsonPath` | **Required for export.** Writes prefix files from the **merged** dictionary; with `allSheetNames` on this is **not** one JSON file per tab. Relative to first workspace root (e.g. `language`). Empty → error. No `..`. | **Export** | (empty) |
 
 ### How It Works
 
@@ -317,6 +318,7 @@ flowchart TD
   - `allSheetNames` checked → Fetch all sheets
   - `allSheetNames` unchecked → Fetch only sheets specified in `targetSheetNames`
 - **No API Key**: Use CSV URL (single sheet only)
+- **`targetSheetNames` has two roles:** tab list when **`allSheetNames` is off**; **always** the prefix list for JSON export and Sync Output tab lines. With all sheets merged, `cd_lang.json` is **not** limited to rows on the tab named CD.
 
 ## 📝 Spreadsheet Format
 
@@ -410,31 +412,38 @@ flowchart TD
     style J fill:#c8e6c9,color:#000000
 ```
 
-### Deployment Commands
+### Deployment Commands (local)
+
+`@vscode/vsce` is a devDependency, so a **global** `vsce` install is optional.
 
 ```bash
-# 1. Install vsce
-pnpm add -g @vscode/vsce
+pnpm install
 
-# 2. Build
-pnpm run build
+# ESLint + webpack (production) + VSIX at repo root (*.vsix)
+pnpm run release:vsix
 
-# 3. Package VSIX
-pnpm run package:vsix
-
-# 4. Deploy (skip dependency check)
-vsce publish --no-dependencies -p <YOUR_PERSONAL_ACCESS_TOKEN>
+# Publish to the VS Marketplace (Azure DevOps PAT required)
+export VSCE_PAT="<YOUR_PERSONAL_ACCESS_TOKEN>"
+pnpm run publish:vsix
 ```
+
+`publish:vsix` reads the **`VSCE_PAT`** environment variable (see `package.json` scripts).
+
+### VSIX via GitHub Actions
+
+1. Add repository secret **`VSCE_PAT`** under **Settings → Secrets and variables → Actions** (only needed to publish from CI).
+2. **Actions → Release extension → Run workflow**
+   - Default: build VSIX and upload it as a workflow **artifact**.
+   - Set **publish_marketplace** to `true` to also run `pnpm run publish:vsix` (requires `VSCE_PAT`).
 
 ### Update Deployment
 
-⚠️ **Important**: You must increment the `version` in `package.json` before redeploying after code changes.
+⚠️ **Important**: Bump **`package.json` `version`** and update **`CHANGELOG.md`** before each marketplace release.
 
 ```bash
-# 1. Update version in package.json (e.g., 0.0.1 → 0.0.2)
-# 2. Build and deploy
-pnpm run build
-vsce publish --no-dependencies -p <TOKEN>
+pnpm run release:vsix
+export VSCE_PAT="..."
+pnpm run publish:vsix
 ```
 
 ### Apply Icon
