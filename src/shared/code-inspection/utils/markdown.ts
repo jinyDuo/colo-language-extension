@@ -5,6 +5,7 @@ const getLanguageFlag = (langCode: string): string => {
 	const flags: Record<string, string> = {
 		ko: '🇰🇷',
 		en: '🇺🇸',
+		jp: '🇯🇵',
 		ja: '🇯🇵',
 		es: '🇪🇸',
 		zh: '🇨🇳',
@@ -21,7 +22,8 @@ const formatLanguageName = (langCode: string): string => {
 	const names: Record<string, string> = {
 		ko: 'KO',
 		en: 'EN',
-		ja: 'JA',
+		jp: 'JP',
+		ja: 'JP',
 		es: 'ES',
 		zh: 'ZH',
 		fr: 'FR',
