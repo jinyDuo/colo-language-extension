@@ -144,7 +144,7 @@ Open the Command Palette (`Ctrl + Shift + P` / `Cmd + Shift + P`) and run:
 | Command | What it does |
 |---------|----------------|
 | **Sheet Language Global Helper: Sheet Connect Sync** | Fetches data from your configured source (Service Account JSON, API Key, JSON URL, or CSV URL) and saves it to extension local storage for hover and inlay hints. The Output channel ("Sheet Language Global Helper") logs the total key count, then **one line per tab listed in `targetSheetNames`** (body row count and first-column non-empty row count). The same lines are mirrored to the **Debug Console**. |
-| **Sheet Language Global Helper: Sheet Sync to JSON** | **Automatically fetches the latest sheet data first** (same path as Sheet Connect Sync), then writes under **`workspaceExportJsonPath`**: **`all_language.json`** (union of keys matching **`targetSheetNames`** prefixes) and one **`{prefix}_lang.json`** per prefix that has at least one key. Unmatched keys are omitted. Longer prefixes win when overlapping. **Empty `workspaceExportJsonPath` → error.** If the fetch step fails, **no JSON files are written** and in-memory data is cleared (see below). The Output channel logs each pipeline stage (keys received → after prefix match → after language filter), then **`json 생성경로 :`** once with the absolute folder path (also mirrored to the Debug Console), then short **`wrote <file> keys=…`** lines without repeating the full path. |
+| **Sheet Language Global Helper: Sheet Sync to JSON** | **Automatically fetches the latest sheet data first** (same path as Sheet Connect Sync), then writes under **`workspaceExportJsonPath`**: **`all_language.json`** (union of keys matching **`targetSheetNames`** prefixes) and one **`{prefix}_lang.json`** per prefix that has at least one key. Unmatched keys are omitted. Longer prefixes win when overlapping. **Empty `workspaceExportJsonPath` → error.** If the fetch step fails, **no JSON files are written** and in-memory data is cleared (see below). The Output channel prints the folder path (`json 생성경로 :`), **total key count**, a **JSON별 키 수** header, then **one indented line per JSON file** (`all_language.json`, `wd_lang.json`, …), then **저장 완료**. The **Debug Console** gets the same information as a short multi-line block. |
 
 ### Data Synchronization
 
@@ -208,6 +208,8 @@ If the **fetch step fails**, JSON files are **not** written; you get a warning a
 ```
 
 **Multi-root workspaces:** The export path is resolved under the **first** folder listed in the workspace. To use another folder, reorder folders or open that folder alone.
+
+**When the CD tab row count and `cd_lang.json` key count differ:** The sync log line **“tab CD: N body rows”** counts rows **on that CD sheet tab only**. `cd_lang.json` instead lists **every merged dictionary key** whose code **starts with the `CD` prefix**, across **all tabs** that were fetched (e.g. with **`allSheetNames`**). Keys like `CD…` on other tabs are still bucketed into `cd_lang.json`, so the file can have **more keys than the CD tab row count**. If your **Output** still shows legacy lines such as **`받은 딕셔너리`**, you are on an **older build**—update the extension and run **Sheet Sync to JSON** again.
 
 ### View Multilingual Info via Hover
 

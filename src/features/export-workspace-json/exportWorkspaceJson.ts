@@ -47,6 +47,16 @@ const writeJsonFile = async (
 	await vscode.workspace.fs.writeFile(targetUri, textEncoder.encode(jsonText));
 };
 
+const parseJsonFileNameAndKeyCount = (
+	nameCountPair: string
+): { jsonFileName: string; keyCountValue: string } => {
+	const separatorIndex = nameCountPair.indexOf(':');
+	return {
+		jsonFileName: nameCountPair.slice(0, separatorIndex),
+		keyCountValue: nameCountPair.slice(separatorIndex + 1)
+	};
+};
+
 export const exportLanguageDictionaryToWorkspaceJson = async (
 	languageDictionary: LanguageDictionary
 ): Promise<void> => {
@@ -170,11 +180,20 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 	const logPrefix = `[${ts()}] [export]`;
 	outputChannel.appendLine(`${logPrefix} json 생성경로 : ${exportDirectoryUri.fsPath}`);
 	outputChannel.appendLine(`${logPrefix} 총계: ${matchedKeyCount}개`);
-	outputChannel.appendLine(`${logPrefix} JSON별 키 수 — ${jsonKeyCountSummaryItems.join(' | ')}`);
+	outputChannel.appendLine(`${logPrefix} JSON별 키 수`);
+	for (const nameCountPair of jsonKeyCountSummaryItems) {
+		const { jsonFileName, keyCountValue } = parseJsonFileNameAndKeyCount(nameCountPair);
+		outputChannel.appendLine(`${logPrefix}   ${jsonFileName}: ${keyCountValue}개`);
+	}
 	outputChannel.appendLine(`${logPrefix} 저장 완료`);
 
-	const consoleSummary = `[export] ${exportDirectoryUri.fsPath} | 총계 ${matchedKeyCount} | ${jsonKeyCountSummaryItems.join(', ')}`;
-	console.log(consoleSummary);
+	const perFileLinesForConsole = jsonKeyCountSummaryItems.map((nameCountPair) => {
+		const { jsonFileName, keyCountValue } = parseJsonFileNameAndKeyCount(nameCountPair);
+		return `  ${jsonFileName}: ${keyCountValue}개`;
+	});
+	console.log(
+		`[export] ${exportDirectoryUri.fsPath}\n총계 ${matchedKeyCount}개\n${perFileLinesForConsole.join('\n')}`
+	);
 
 	const successMessage = `언어 데이터를 저장했습니다: ${writtenSummaryItems.join(', ')}`;
 	vscode.window.showInformationMessage(successMessage);

@@ -8,7 +8,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - **코드**: Output 채널 이름·생성 로직을 `src/shared/extension-output/sheetLanguageHelperOutputChannel.ts`로 통합; 동기화·JSON 보내기에서 공유.
 - **동기화**: 원격 가져오기 실패 시(일반 Sync, `throwOnFetchFailure` 없음) **`langData`를 비우고 `{}` 반환** — 이전 사전을 “동기화된 것처럼” 돌려주지 않음.
-- **JSON 보내기 로그**: `json 생성경로 :` 한 줄만 절대 경로로 출력( Output + Debug Console ); 파일별 로그는 전체 경로 반복 없음.
+- **JSON 보내기 로그**: 생성 폴더 경로·총계·`JSON별 키 수`(파일별 줄바꿈)·저장 완료; Debug Console은 동일 정보를 짧은 여러 줄로.
 - **문서**: README / README.ko — 명령 설명, 실패 시 동작, 로그 형식 반영.
 
 ## [0.0.29]

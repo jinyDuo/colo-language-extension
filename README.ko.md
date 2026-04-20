@@ -144,7 +144,7 @@ flowchart TD
 | 명령 | 설명 |
 |------|------|
 | **Sheet Language Global Helper: Sheet Connect Sync** | 설정한 소스(서비스 계정 JSON, API 키, JSON URL, CSV URL)에서 데이터를 가져와 확장 로컬 스토리지에 저장합니다. Hover·인레이 힌트에 사용됩니다. Output 채널("Sheet Language Global Helper")에 전체 키 수와, **`targetSheetNames`에 적힌 탭만** 탭별 행 수(본문 행·첫 열 값 있는 행)가 기록됩니다. 동일 내용이 **Debug Console**에도 출력됩니다. |
-| **Sheet Language Global Helper: Sheet Sync to JSON** | **최신 시트 데이터를 먼저 자동으로 가져온 뒤**(Sheet Connect Sync와 동일 경로), **`workspaceExportJsonPath`** 아래에 **`targetSheetNames`** 접두에 맞는 키만 **`all_language.json`**(합집합)과 **`{접두사}_lang.json`**으로 저장. 매칭되는 키가 없으면 경고 후 저장하지 않음. 접두가 겹치면 **긴 쪽** 우선. **`workspaceExportJsonPath` 비우면 오류.** 가져오기에 **실패하면 JSON 파일은 쓰지 않으며** 저장된 사전도 비웁니다(아래 실패 동작 참고). Output에는 단계별 로그 후 **`json 생성경로 :`** 한 줄(절대 경로, Debug Console 동시 출력), 이어서 파일명·키 수만 짧게 기록합니다. |
+| **Sheet Language Global Helper: Sheet Sync to JSON** | **최신 시트 데이터를 먼저 자동으로 가져온 뒤**(Sheet Connect Sync와 동일 경로), **`workspaceExportJsonPath`** 아래에 **`targetSheetNames`** 접두에 맞는 키만 **`all_language.json`**(합집합)과 **`{접두사}_lang.json`**으로 저장. 매칭되는 키가 없으면 경고 후 저장하지 않음. 접두가 겹치면 **긴 쪽** 우선. **`workspaceExportJsonPath` 비우면 오류.** 가져오기에 **실패하면 JSON 파일은 쓰지 않으며** 저장된 사전도 비웁니다(아래 실패 동작 참고). Output에는 **`json 생성경로 :`**(절대 경로), **`총계`**, **`JSON별 키 수`** 제목 다음에 **파일마다 한 줄씩**(들여쓰기), 마지막 **`저장 완료`** 순으로 남깁니다. Debug Console에는 동일 내용을 **짧은 여러 줄**로 출력합니다. |
 
 ### 데이터 동기화
 
@@ -208,6 +208,8 @@ flowchart LR
 ```
 
 **멀티 루트 워크스페이스:** **`workspaceExportJsonPath`** 는 **목록의 첫 번째 폴더** 루트 기준입니다. 다른 폴더를 쓰려면 폴더 순서를 바꾸거나 해당 폴더만 단독으로 여세요.
+
+**시트 탭 행 수와 `cd_lang.json` 키 개수가 다를 때:** 동기화 로그의 **「탭 CD: 본문 N행」**은 **그 탭 시트** 기준 행 수입니다. 반면 `cd_lang.json`에는 **병합된 사전 전체**에서 `key`가 **`CD` 접두와 맞는 항목이 모두** 들어갑니다. `allSheetNames`로 **다른 탭**까지 가져오면, 그 탭에 `CD…` 형태 키가 있으면 **CD 탭 행 수보다 `cd_lang.json` 키가 많아질 수 있습니다.** (WD/ST 탭에 실수로 `CD` 접두 키가 있어도 동일합니다.) **Output에 `받은 딕셔너리` 등 예전 형식**이 보이면 예전 빌드가 돌아가는 것이니, 확장을 최신으로 맞춘 뒤 **Sheet Sync to JSON**을 다시 실행해 보세요.
 
 ### Hover로 다국어 확인
 
