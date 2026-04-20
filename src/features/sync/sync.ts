@@ -13,6 +13,10 @@ import type { LanguageDictionary } from '../../shared/language-dictionary/types'
 import type { SheetTabFetchSummary, SheetsCredential } from '../../shared/sheet-data/types';
 import { parseCsvToDictionary } from '../../shared/sheet-data/utils/parser';
 import { extractSheetIdFromUrl } from '../../shared/sheet-data/utils/sheetIdExtractor';
+import {
+	appendSheetLanguageHelperLineWithConsoleMirror,
+	createSheetLanguageHelperOutputChannel
+} from '../../shared/extension-output/sheetLanguageHelperOutputChannel';
 import { parseSheetNames } from '../../shared/sheet-data/utils/sheetNameParser';
 
 const resolveSheetId = (
@@ -183,19 +187,8 @@ const saveDictionaryAndShowMessage = async (
 	return freshDictionary;
 };
 
-const OUTPUT_CHANNEL_NAME = 'Sheet Language Global Helper';
-
-const getOutputChannel = (): vscode.OutputChannel => {
-	return vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
-};
-
 const resetLangDataGlobalState = async (context: vscode.ExtensionContext): Promise<void> => {
 	await context.globalState.update('langData', {});
-};
-
-const emitSyncLogLine = (outputChannel: vscode.OutputChannel, line: string): void => {
-	outputChannel.appendLine(line);
-	console.log(line);
 };
 
 const persistDictionaryAndNotify = async (
@@ -213,11 +206,14 @@ const persistDictionaryAndNotify = async (
 		vscode.window.showInformationMessage(successMessage);
 	}
 
-	const outputChannel = getOutputChannel();
-	emitSyncLogLine(outputChannel, `[${new Date().toISOString()}] ${successMessage}`);
+	const outputChannel = createSheetLanguageHelperOutputChannel();
+	appendSheetLanguageHelperLineWithConsoleMirror(
+		outputChannel,
+		`[${new Date().toISOString()}] ${successMessage}`
+	);
 	if (sheetTabFetchSummaries && sheetTabFetchSummaries.length > 0) {
 		for (const summary of sheetTabFetchSummaries) {
-			emitSyncLogLine(
+			appendSheetLanguageHelperLineWithConsoleMirror(
 				outputChannel,
 				`  · 탭 "${summary.sheetTitle}": 본문 행 ${summary.dataRowCount}행, A열(첫 열) 값 있는 행 ${summary.nonEmptyKeyRowCount}행`
 			);
@@ -243,10 +239,13 @@ export const syncLanguageData = async (
 	const useSheetsApi = (sheetServiceAccountJson?.trim() ?? '') !== '' || (sheetApiKey?.trim() ?? '') !== '';
 
 	if (!useSheetsApi && !sheetJsonUrl && !sheetUrl) {
+		const missingRemoteMessage =
+			'설정창에서 서비스 계정 JSON, 구글 시트 API 키, JSON API URL, 또는 CSV URL 중 하나를 입력해주세요!';
 		if (!syncOptions?.suppressSuccessToast) {
-			vscode.window.showErrorMessage(
-				'설정창에서 서비스 계정 JSON, 구글 시트 API 키, JSON API URL, 또는 CSV URL 중 하나를 입력해주세요!'
-			);
+			vscode.window.showErrorMessage(missingRemoteMessage);
+		}
+		if (syncOptions?.throwOnFetchFailure) {
+			throw new Error(missingRemoteMessage);
 		}
 		return languageDictionary;
 	}
@@ -254,8 +253,6 @@ export const syncLanguageData = async (
 	const expectedJapaneseColumn = resolveJapaneseLanguageCodeFromSetting(
 		config.get<string>('japaneseLanguageCode')
 	);
-
-	let isLangDataResetForRemoteFetch = false;
 
 	try {
 		if (useSheetsApi) {
@@ -266,13 +263,16 @@ export const syncLanguageData = async (
 			} else if (sheetApiKey?.trim()) {
 				credential = { type: 'apiKey', apiKey: sheetApiKey.trim() };
 			} else {
+				const missingCredentialMessage = '서비스 계정 JSON 또는 API 키를 입력해주세요.';
 				if (!syncOptions?.suppressSuccessToast) {
-					vscode.window.showErrorMessage('서비스 계정 JSON 또는 API 키를 입력해주세요.');
+					vscode.window.showErrorMessage(missingCredentialMessage);
+				}
+				if (syncOptions?.throwOnFetchFailure) {
+					throw new Error(missingCredentialMessage);
 				}
 				return languageDictionary;
 			}
 			await resetLangDataGlobalState(context);
-			isLangDataResetForRemoteFetch = true;
 			const { csvData, sheetTabFetchSummaries } = await fetchCsvDataBySheetsApi(
 				credential,
 				sheetId,
@@ -297,7 +297,6 @@ export const syncLanguageData = async (
 
 		if (sheetJsonUrl?.trim()) {
 			await resetLangDataGlobalState(context);
-			isLangDataResetForRemoteFetch = true;
 			const freshDictionary = await fetchDictionaryFromJsonUrl(sheetJsonUrl, {
 				expectedJapaneseColumn
 			});
@@ -310,7 +309,6 @@ export const syncLanguageData = async (
 			throw new Error('CSV URL을 입력해주세요!');
 		}
 		await resetLangDataGlobalState(context);
-		isLangDataResetForRemoteFetch = true;
 		const csvData = await fetchCsvDataByUrl(trimmedCsvUrl);
 		return await saveDictionaryAndShowMessage(
 			context,
@@ -325,7 +323,7 @@ export const syncLanguageData = async (
 
 		vscode.window.showErrorMessage(fullMessage);
 
-		const outputChannel = getOutputChannel();
+		const outputChannel = createSheetLanguageHelperOutputChannel();
 		outputChannel.appendLine(`[${new Date().toISOString()}] ❌ ${fullMessage}`);
 		outputChannel.show();
 
@@ -333,6 +331,7 @@ export const syncLanguageData = async (
 			throw error instanceof Error ? error : new Error(String(error));
 		}
 
-		return isLangDataResetForRemoteFetch ? {} : languageDictionary;
+		await context.globalState.update('langData', {});
+		return {};
 	}
 };

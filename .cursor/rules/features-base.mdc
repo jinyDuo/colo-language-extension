@@ -37,6 +37,7 @@ src/
       utils/
     workspace-export/      # 워크스페이스 JSON 경로 파싱
       utils/
+    extension-output/      # 확장 Output 채널 이름·생성 (여러 feature 공용)
   test/
 ```
 

@@ -143,16 +143,16 @@ flowchart TD
 
 | 명령 | 설명 |
 |------|------|
-| **Sheet Language Global Helper: Sheet Connect Sync** | 설정한 소스(서비스 계정 JSON, API 키, JSON URL, CSV URL)에서 데이터를 가져와 확장 로컬 스토리지에 저장합니다. Hover·인레이 힌트에 사용됩니다. Output 채널("Sheet Language Global Helper")에 전체 키 수와 시트 탭별 행 수가 기록됩니다. |
-| **Sheet Language Global Helper: Sheet Sync to JSON** | **최신 시트 데이터를 먼저 자동으로 가져온 뒤**(Sheet Connect Sync와 동일 경로), **`workspaceExportJsonPath`** 아래에 **`targetSheetNames`** 접두에 맞는 키만 **`all_language.json`**(합집합)과 **`{접두사}_lang.json`**으로 저장. 매칭되는 키가 없으면 경고 후 저장하지 않음. 접두가 겹치면 **긴 쪽** 우선. **`workspaceExportJsonPath` 비우면 오류.** 별도 Sync 없이 항상 최신 데이터 기록. 처리 단계별(받은 키 수 → prefix 매칭 후 → 필터 후) 로그가 Output 채널에 기록됩니다. |
+| **Sheet Language Global Helper: Sheet Connect Sync** | 설정한 소스(서비스 계정 JSON, API 키, JSON URL, CSV URL)에서 데이터를 가져와 확장 로컬 스토리지에 저장합니다. Hover·인레이 힌트에 사용됩니다. Output 채널("Sheet Language Global Helper")에 전체 키 수와, **`targetSheetNames`에 적힌 탭만** 탭별 행 수(본문 행·첫 열 값 있는 행)가 기록됩니다. 동일 내용이 **Debug Console**에도 출력됩니다. |
+| **Sheet Language Global Helper: Sheet Sync to JSON** | **최신 시트 데이터를 먼저 자동으로 가져온 뒤**(Sheet Connect Sync와 동일 경로), **`workspaceExportJsonPath`** 아래에 **`targetSheetNames`** 접두에 맞는 키만 **`all_language.json`**(합집합)과 **`{접두사}_lang.json`**으로 저장. 매칭되는 키가 없으면 경고 후 저장하지 않음. 접두가 겹치면 **긴 쪽** 우선. **`workspaceExportJsonPath` 비우면 오류.** 가져오기에 **실패하면 JSON 파일은 쓰지 않으며** 저장된 사전도 비웁니다(아래 실패 동작 참고). Output에는 단계별 로그 후 **`json 생성경로 :`** 한 줄(절대 경로, Debug Console 동시 출력), 이어서 파일명·키 수만 짧게 기록합니다. |
 
 ### 데이터 동기화
 
 1. `Ctrl + Shift + P` → **Sheet Language Global Helper: Sheet Connect Sync** 실행
 2. 성공 시 정보 알림과 함께 **출력** 패널(채널 **Sheet Language Global Helper**)에 `동기화 완료! (N개 데이터, … 사용)` 형태의 로그가 남습니다.
-3. 실패 시 오류 알림이 뜨고, 같은 출력 채널에도 내용이 기록됩니다.
+3. 실패 시 오류 알림이 뜨고, 같은 출력 채널에도 내용이 기록됩니다. **원격 가져오기가 실패하면** 예전 사전을 유지하지 않습니다: 확장 저장소의 `langData`는 **`{}`로 비우고**, 반환값도 빈 사전이라 다음 성공 동기화 전까지 Hover·인레이 힌트에 데이터가 없습니다.
 
-> **Cursor 등 일부 환경:** 성공 토스트가 안 보이면 **보기 → 출력**에서 채널을 **Sheet Language Global Helper**로 바꾼 뒤 최근 로그를 확인하세요.
+> **Cursor 등 일부 환경:** 성공 토스트가 안 보이면 **보기 → 출력**에서 채널을 **Sheet Language Global Helper**로 바꾼 뒤 최근 로그를 확인하세요(동기화 줄은 **Debug Console**에서도 동일하게 볼 수 있습니다).
 
 #### 동기화 프로세스
 
@@ -192,6 +192,8 @@ flowchart LR
 4. **Sheet Sync to JSON** 실행 — 명령이 **시트에서 최신 데이터를 자동으로 가져온 뒤**(별도 Sync 불필요), 경로 폴더가 없으면 생성 후:
    - **`all_language.json`** — `targetSheetNames` 접두에 맞는 키만 모은 사전 (접두별 파일과 동일 키 집합의 합)
    - **`{접두사}_lang.json`** — 각 접두와 매칭되는 키만 (해당 키가 있을 때만 파일 생성)
+
+**가져오기 단계가 실패하면** JSON 파일은 **생성·갱신하지 않으며**, 경고만 표시합니다. 저장된 사전도 비워져(수동 Sync 실패와 동일) 혼선을 줄입니다.
 
 **JSON 형태** (각 파일은 동일 구조: 코드 키 → 언어 코드 → 문자열):
 
@@ -345,9 +347,10 @@ flowchart TD
 
 ### JSON 보내기: "보낼 언어 데이터가 없습니다" / 접두 매칭 키 없음 경고
 - **`targetSheetNames`** 가 시트의 키 접두사와 일치하는지 확인하세요 (예: `WD,ST,CD`). 보내기 명령은 자동으로 최신 데이터를 가져오므로 별도 Sync 실행은 필요하지 않습니다.
+- 직전에 동기화·보내기 **가져오기가 실패**했다면 저장소가 비어 있을 수 있으니 **Sheet Connect Sync**를 다시 성공시키세요.
 
 ### Hover가 작동하지 않음
-- 데이터 동기화를 먼저 실행했는지 확인
+- 설치 직후 또는 가져오기 실패 이후에는 **Sheet Connect Sync**를 한 번 성공시켰는지 확인
 - 코드에서 `WD`, `ST`, `CD`로 시작하는 키를 사용했는지 확인
 
 ## 🛠️ 개발

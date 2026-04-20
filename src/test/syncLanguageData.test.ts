@@ -99,6 +99,45 @@ suite('syncLanguageData — Export와 동일한 시트 반영 파이프라인', 
 		}
 	});
 
+	test('throwOnFetchFailure가 없을 때 JSON 요청이 실패하면 빈 사전을 반환하고 globalState도 비운다', async () => {
+		const snapshot = readLanguageHelperSnapshot();
+		const originalGet = axios.get;
+		try {
+			const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
+			await config.update('sheetServiceAccountJson', '', vscode.ConfigurationTarget.Global);
+			await config.update('sheetApiKey', '', vscode.ConfigurationTarget.Global);
+			await config.update(
+				'sheetJsonUrl',
+				'https://example.com/sync-will-fail-soft.json',
+				vscode.ConfigurationTarget.Global
+			);
+			await config.update('sheetUrl', '', vscode.ConfigurationTarget.Global);
+
+			(axios as { get: (url: string) => Promise<{ data: unknown }> }).get = async () => {
+				throw new Error('network down');
+			};
+
+			const context = createInMemoryExtensionContext();
+			await context.globalState.update('langData', {
+				WD_KEEP: { ko: '이전', en: 'prev', ja: '前' }
+			});
+			const staleDictionary: LanguageDictionary = {
+				WD_STALE: { ko: '옛', en: 'old', ja: '古' }
+			};
+
+			const result = await syncLanguageData(context, staleDictionary, {
+				suppressSuccessToast: true
+			});
+
+			assert.deepStrictEqual(result, {});
+			const persistedDictionary = context.globalState.get<LanguageDictionary>('langData', {});
+			assert.deepStrictEqual(persistedDictionary, {});
+		} finally {
+			axios.get = originalGet;
+			await restoreLanguageHelperSnapshot(snapshot);
+		}
+	});
+
 	test('throwOnFetchFailure일 때 JSON 요청이 실패하면 예외를 던져 Export가 JSON 쓰기를 막을 수 있다', async () => {
 		const snapshot = readLanguageHelperSnapshot();
 		const originalGet = axios.get;

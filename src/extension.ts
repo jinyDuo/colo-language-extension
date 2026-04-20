@@ -43,7 +43,7 @@ export const activate = (context: vscode.ExtensionContext): void => {
 						vscode.window.showErrorMessage(`JSON 저장 실패: ${message}`);
 					}
 				} catch {
-					languageDictionary = context.globalState.get<LanguageDictionary>('langData', {});
+					languageDictionary = {};
 					vscode.window.showWarningMessage(
 						'시트에서 데이터를 가져오지 못해 JSON 보내기를 취소했습니다. (오류는 동기화 메시지를 참고하세요)'
 					);
@@ -52,14 +52,6 @@ export const activate = (context: vscode.ExtensionContext): void => {
 			.catch(() => {
 				// Unhandled rejections in the export job (should be rare)
 			});
-	};
-
-	const handleExportWorkspaceJsonCommand = (): void => {
-		languageDictionary = context.globalState.get<LanguageDictionary>('langData', languageDictionary);
-		exportLanguageDictionaryToWorkspaceJson(languageDictionary).catch((error: unknown) => {
-			const message = error instanceof Error ? error.message : '알 수 없는 오류';
-			vscode.window.showErrorMessage(`JSON 저장 실패: ${message}`);
-		});
 	};
 
 	const handleProvideHover = (

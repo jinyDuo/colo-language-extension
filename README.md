@@ -143,16 +143,16 @@ Open the Command Palette (`Ctrl + Shift + P` / `Cmd + Shift + P`) and run:
 
 | Command | What it does |
 |---------|----------------|
-| **Sheet Language Global Helper: Sheet Connect Sync** | Fetches data from your configured source (Service Account JSON, API Key, JSON URL, or CSV URL) and saves it to extension local storage for hover and inlay hints. The Output channel ("Sheet Language Global Helper") logs the total count and per-tab row count for each fetched sheet. |
-| **Sheet Language Global Helper: Sheet Sync to JSON** | **Automatically fetches the latest sheet data first** (same path as Sheet Connect Sync), then writes under **`workspaceExportJsonPath`**: **`all_language.json`** (union of keys matching **`targetSheetNames`** prefixes) and one **`{prefix}_lang.json`** per prefix that has at least one key. Unmatched keys are omitted. Longer prefixes win when overlapping. **Empty `workspaceExportJsonPath` → error.** Each processing stage (keys received → after prefix match → after language filter) is logged to the Output channel. |
+| **Sheet Language Global Helper: Sheet Connect Sync** | Fetches data from your configured source (Service Account JSON, API Key, JSON URL, or CSV URL) and saves it to extension local storage for hover and inlay hints. The Output channel ("Sheet Language Global Helper") logs the total key count, then **one line per tab listed in `targetSheetNames`** (body row count and first-column non-empty row count). The same lines are mirrored to the **Debug Console**. |
+| **Sheet Language Global Helper: Sheet Sync to JSON** | **Automatically fetches the latest sheet data first** (same path as Sheet Connect Sync), then writes under **`workspaceExportJsonPath`**: **`all_language.json`** (union of keys matching **`targetSheetNames`** prefixes) and one **`{prefix}_lang.json`** per prefix that has at least one key. Unmatched keys are omitted. Longer prefixes win when overlapping. **Empty `workspaceExportJsonPath` → error.** If the fetch step fails, **no JSON files are written** and in-memory data is cleared (see below). The Output channel logs each pipeline stage (keys received → after prefix match → after language filter), then **`json 생성경로 :`** once with the absolute folder path (also mirrored to the Debug Console), then short **`wrote <file> keys=…`** lines without repeating the full path. |
 
 ### Data Synchronization
 
 1. Press `Ctrl + Shift + P` → Run **Sheet Language Global Helper: Sheet Connect Sync**
 2. On success you should see an information toast and/or the **Output** panel (channel **Sheet Language Global Helper**) with a line like: `동기화 완료! (N개 데이터, … 사용)`.
-3. On failure, an error message appears; details are also logged to the same Output channel.
+3. On failure, an error message appears; details are also logged to the same Output channel. **After a failed remote fetch**, the extension **does not keep the previous dictionary**: `langData` in extension storage is cleared to `{}`, the command returns an empty dictionary, and hover/inlay hints have nothing until the next successful sync.
 
-> **Cursor / some editors:** If the success toast does not appear, open **View → Output**, choose **Sheet Language Global Helper** in the dropdown, and check the latest log line.
+> **Cursor / some editors:** If the success toast does not appear, open **View → Output**, choose **Sheet Language Global Helper** in the dropdown, and check the latest log line (or the **Debug Console** for the same sync lines).
 
 #### Synchronization Process
 
@@ -192,6 +192,8 @@ Use this when you want a **file on disk** (e.g. for code review, build scripts, 
 4. Run **Sheet Language Global Helper: Sheet Sync to JSON**. The command **fetches the latest data from the sheet first** (no separate Sync needed), then the folder (and any missing parent segments) is created if needed:
    - **`all_language.json`** — only keys whose code starts with one of the **`targetSheetNames`** prefixes (same union as the per-prefix files)
    - **`{lowercasePrefix}_lang.json`** — one per **`targetSheetNames`** entry that has at least one matching key (empty prefixes are skipped)
+
+If the **fetch step fails**, JSON files are **not** written; you get a warning and the extension’s stored dictionary is cleared (same “no stale data after failure” rule as manual sync).
 
 **JSON shape** (each file is an object: code key → language code → text):
 
@@ -345,9 +347,10 @@ flowchart TD
 
 ### Export JSON: "no data" / warning about no matching keys
 - Check that **`targetSheetNames`** matches the key prefixes in your sheet (e.g. `WD,ST,CD`). The export fetches fresh data automatically, so a separate Sync is not required.
+- If you recently had a **failed** sync or export fetch, stored data may be empty until the next successful **Sheet Connect Sync**.
 
 ### Hover Not Working
-- Make sure data synchronization has been run first
+- Run **Sheet Connect Sync** successfully after install or a failed fetch (see above)
 - Verify you're using keys starting with `WD`, `ST`, `CD` in your code
 
 ## 🛠️ Development

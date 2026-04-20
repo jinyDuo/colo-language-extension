@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { createSheetLanguageHelperOutputChannel } from '../../shared/extension-output/sheetLanguageHelperOutputChannel';
 import type { LanguageDictionary } from '../../shared/language-dictionary/types';
 import {
 	buildExportFileNameFromSheetPrefix,
@@ -46,16 +47,13 @@ const writeJsonFile = async (
 	await vscode.workspace.fs.writeFile(targetUri, textEncoder.encode(jsonText));
 };
 
-const OUTPUT_CHANNEL_NAME = 'Sheet Language Global Helper';
-
 export const exportLanguageDictionaryToWorkspaceJson = async (
 	languageDictionary: LanguageDictionary
 ): Promise<void> => {
-	const outputChannel = vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
+	const outputChannel = createSheetLanguageHelperOutputChannel();
 	const ts = () => new Date().toISOString();
 
 	const keyCount = Object.keys(languageDictionary).length;
-	outputChannel.appendLine(`[${ts()}] [export] 받은 딕셔너리: ${keyCount}개`);
 
 	if (keyCount === 0) {
 		vscode.window.showWarningMessage(
@@ -107,7 +105,6 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 		targetSheetNamesConfig
 	);
 	const mergedForExport = mergeDictionaryFromPrefixBuckets(prefixBucketItems);
-	outputChannel.appendLine(`[${ts()}] [export] prefix 매칭 후 mergedForExport: ${Object.keys(mergedForExport).length}개`);
 	try {
 		assertExpectedJapaneseSheetColumnPresent(mergedForExport, preferredJapanese);
 	} catch (error) {
@@ -124,7 +121,6 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 		sheetLanguageCodeItems
 	);
 	const matchedKeyCount = Object.keys(allLanguageDictionary).length;
-	outputChannel.appendLine(`[${ts()}] [export] 최종 언어 필터링 후: ${matchedKeyCount}개`);
 
 	if (matchedKeyCount === 0) {
 		outputChannel.appendLine(`[${ts()}] [export] ❌ matchedKeyCount=0 → 쓰기 중단`);
@@ -149,9 +145,10 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 	const exportPathDisplay = pathSegmentItems.join('/');
 	const textEncoder = new TextEncoder();
 	const writtenSummaryItems: string[] = [];
+	const jsonKeyCountSummaryItems: string[] = [];
 
-	outputChannel.appendLine(`[${ts()}] [export] 쓰기 시작 → ${exportPathDisplay}/`);
 	await writeJsonFile(exportDirectoryUri, ALL_LANGUAGE_FILE_NAME, allLanguageDictionary, textEncoder);
+	jsonKeyCountSummaryItems.push(`${ALL_LANGUAGE_FILE_NAME}:${matchedKeyCount}`);
 	writtenSummaryItems.push(`${exportPathDisplay}/${ALL_LANGUAGE_FILE_NAME} (${matchedKeyCount}개)`);
 
 	for (const { sheetPrefix, dictionary } of prefixBucketItems) {
@@ -164,12 +161,22 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 			normalizeLanguageDictionaryFromSheet(dictionary, preferredJapanese),
 			sheetLanguageCodeItems
 		);
+		const writtenKeyCount = Object.keys(exportDictionary).length;
 		await writeJsonFile(exportDirectoryUri, fileName, exportDictionary, textEncoder);
-		writtenSummaryItems.push(`${exportPathDisplay}/${fileName} (${partialKeyCount}개)`);
+		jsonKeyCountSummaryItems.push(`${fileName}:${writtenKeyCount}`);
+		writtenSummaryItems.push(`${exportPathDisplay}/${fileName} (${writtenKeyCount}개)`);
 	}
+
+	const logPrefix = `[${ts()}] [export]`;
+	outputChannel.appendLine(`${logPrefix} json 생성경로 : ${exportDirectoryUri.fsPath}`);
+	outputChannel.appendLine(`${logPrefix} 총계: ${matchedKeyCount}개`);
+	outputChannel.appendLine(`${logPrefix} JSON별 키 수 — ${jsonKeyCountSummaryItems.join(' | ')}`);
+	outputChannel.appendLine(`${logPrefix} 저장 완료`);
+
+	const consoleSummary = `[export] ${exportDirectoryUri.fsPath} | 총계 ${matchedKeyCount} | ${jsonKeyCountSummaryItems.join(', ')}`;
+	console.log(consoleSummary);
 
 	const successMessage = `언어 데이터를 저장했습니다: ${writtenSummaryItems.join(', ')}`;
 	vscode.window.showInformationMessage(successMessage);
-	outputChannel.appendLine(`[${ts()}] ${successMessage}`);
 	outputChannel.show();
 };
