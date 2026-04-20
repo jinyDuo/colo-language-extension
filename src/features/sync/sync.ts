@@ -10,7 +10,7 @@ import {
 } from '../../shared/language-dictionary/constants/sheetLanguageCodes';
 import { DEFAULT_TARGET_SHEET_NAMES } from '../../shared/sheet-data/constants';
 import type { LanguageDictionary } from '../../shared/language-dictionary/types';
-import type { SheetsCredential } from '../../shared/sheet-data/types';
+import type { SheetTabFetchSummary, SheetsCredential } from '../../shared/sheet-data/types';
 import { parseCsvToDictionary } from '../../shared/sheet-data/utils/parser';
 import { extractSheetIdFromUrl } from '../../shared/sheet-data/utils/sheetIdExtractor';
 import { parseSheetNames } from '../../shared/sheet-data/utils/sheetNameParser';
@@ -39,12 +39,17 @@ const resolveSheetId = (
 	return undefined;
 };
 
+type FetchCsvByApiResult = {
+	csvData: string;
+	sheetTabFetchSummaries: SheetTabFetchSummary[];
+};
+
 const fetchCsvDataByApi = async (
 	credential: SheetsCredential,
 	finalSheetId: string,
 	isAllSheetNames: boolean,
 	targetSheetNamesConfig: string
-): Promise<string> => {
+): Promise<FetchCsvByApiResult> => {
 	if (isAllSheetNames) {
 		const sheetNames = await fetchAllSheetNames(credential, finalSheetId);
 
@@ -52,7 +57,12 @@ const fetchCsvDataByApi = async (
 			throw new Error('가져올 시트가 없습니다.');
 		}
 
-		return await fetchMultipleSheetsByApi(credential, finalSheetId, sheetNames);
+		const { mergedCsv, sheetTabFetchSummaries } = await fetchMultipleSheetsByApi(
+			credential,
+			finalSheetId,
+			sheetNames
+		);
+		return { csvData: mergedCsv, sheetTabFetchSummaries };
 	}
 
 	const sheetNames = parseSheetNames(targetSheetNamesConfig);
@@ -63,7 +73,12 @@ const fetchCsvDataByApi = async (
 		);
 	}
 
-	return await fetchMultipleSheetsByApi(credential, finalSheetId, sheetNames);
+	const { mergedCsv, sheetTabFetchSummaries } = await fetchMultipleSheetsByApi(
+		credential,
+		finalSheetId,
+		sheetNames
+	);
+	return { csvData: mergedCsv, sheetTabFetchSummaries };
 };
 
 const fetchCsvDataByUrl = async (sheetUrl: string): Promise<string> => {
@@ -80,7 +95,7 @@ const fetchCsvDataBySheetsApi = async (
 	sheetUrl: string | undefined,
 	isAllSheetNames: boolean,
 	targetSheetNamesConfig: string
-): Promise<string> => {
+): Promise<FetchCsvByApiResult> => {
 	const finalSheetId = resolveSheetId(sheetId, sheetUrl);
 
 	if (!finalSheetId) {
@@ -112,12 +127,19 @@ const saveDictionaryAndShowMessage = async (
 	csvData: string,
 	method: string,
 	expectedJapaneseColumn: JapaneseSheetLanguageCode,
-	syncOptions?: SyncLanguageDataOptions
+	syncOptions?: SyncLanguageDataOptions,
+	sheetTabFetchSummaries?: SheetTabFetchSummary[]
 ): Promise<LanguageDictionary> => {
 	const freshDictionary = await parseCsvToDictionary(csvData, {
 		expectedJapaneseColumn
 	});
-	await persistDictionaryAndNotify(context, freshDictionary, method, syncOptions);
+	await persistDictionaryAndNotify(
+		context,
+		freshDictionary,
+		method,
+		syncOptions,
+		sheetTabFetchSummaries
+	);
 	return freshDictionary;
 };
 
@@ -127,11 +149,21 @@ const getOutputChannel = (): vscode.OutputChannel => {
 	return vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
 };
 
+const resetLangDataGlobalState = async (context: vscode.ExtensionContext): Promise<void> => {
+	await context.globalState.update('langData', {});
+};
+
+const emitSyncLogLine = (outputChannel: vscode.OutputChannel, line: string): void => {
+	outputChannel.appendLine(line);
+	console.log(line);
+};
+
 const persistDictionaryAndNotify = async (
 	context: vscode.ExtensionContext,
 	freshDictionary: LanguageDictionary,
 	method: string,
-	syncOptions?: SyncLanguageDataOptions
+	syncOptions?: SyncLanguageDataOptions,
+	sheetTabFetchSummaries?: SheetTabFetchSummary[]
 ): Promise<void> => {
 	await context.globalState.update('langData', freshDictionary);
 	const entryCount = Object.keys(freshDictionary).length;
@@ -142,7 +174,15 @@ const persistDictionaryAndNotify = async (
 	}
 
 	const outputChannel = getOutputChannel();
-	outputChannel.appendLine(`[${new Date().toISOString()}] ${successMessage}`);
+	emitSyncLogLine(outputChannel, `[${new Date().toISOString()}] ${successMessage}`);
+	if (sheetTabFetchSummaries && sheetTabFetchSummaries.length > 0) {
+		for (const summary of sheetTabFetchSummaries) {
+			emitSyncLogLine(
+				outputChannel,
+				`  · 탭 "${summary.sheetTitle}": 본문 행 ${summary.dataRowCount}행, A열(첫 열) 값 있는 행 ${summary.nonEmptyKeyRowCount}행`
+			);
+		}
+	}
 	outputChannel.show();
 };
 
@@ -175,6 +215,8 @@ export const syncLanguageData = async (
 		config.get<string>('japaneseLanguageCode')
 	);
 
+	let isLangDataResetForRemoteFetch = false;
+
 	try {
 		if (useSheetsApi) {
 			let credential: SheetsCredential;
@@ -189,7 +231,9 @@ export const syncLanguageData = async (
 				}
 				return languageDictionary;
 			}
-			const csvData = await fetchCsvDataBySheetsApi(
+			await resetLangDataGlobalState(context);
+			isLangDataResetForRemoteFetch = true;
+			const { csvData, sheetTabFetchSummaries } = await fetchCsvDataBySheetsApi(
 				credential,
 				sheetId,
 				sheetUrl,
@@ -202,11 +246,14 @@ export const syncLanguageData = async (
 				csvData,
 				method,
 				expectedJapaneseColumn,
-				syncOptions
+				syncOptions,
+				sheetTabFetchSummaries
 			);
 		}
 
 		if (sheetJsonUrl?.trim()) {
+			await resetLangDataGlobalState(context);
+			isLangDataResetForRemoteFetch = true;
 			const freshDictionary = await fetchDictionaryFromJsonUrl(sheetJsonUrl, {
 				expectedJapaneseColumn
 			});
@@ -214,7 +261,13 @@ export const syncLanguageData = async (
 			return freshDictionary;
 		}
 
-		const csvData = await fetchCsvDataByUrl(sheetUrl || '');
+		const trimmedCsvUrl = (sheetUrl ?? '').trim();
+		if (!trimmedCsvUrl) {
+			throw new Error('CSV URL을 입력해주세요!');
+		}
+		await resetLangDataGlobalState(context);
+		isLangDataResetForRemoteFetch = true;
+		const csvData = await fetchCsvDataByUrl(trimmedCsvUrl);
 		return await saveDictionaryAndShowMessage(
 			context,
 			csvData,
@@ -236,6 +289,6 @@ export const syncLanguageData = async (
 			throw error instanceof Error ? error : new Error(String(error));
 		}
 
-		return languageDictionary;
+		return isLangDataResetForRemoteFetch ? {} : languageDictionary;
 	}
 };
