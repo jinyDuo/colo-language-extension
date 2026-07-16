@@ -2,7 +2,7 @@
   "name": "lang-global-helper",
   "displayName": "Sheet Language Global Helper",
   "description": "An extension that fetches multilingual data from Google Spreadsheets and displays it on hover in code",
-  "version": "0.0.28",
+  "version": "0.0.30",
   "publisher": "language-global-helper",
   "icon": "global-hepler-logo.png",
   "repository": {

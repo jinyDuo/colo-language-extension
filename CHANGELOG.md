@@ -6,6 +6,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.30]
+
 - 설정 **`languageHelper.japaneseLanguageCode`** (`ja`/`jp` 드롭다운) 제거. 일본어 열·필드는 항상 **`ja`** 고정.
 
 ## [0.0.27]
