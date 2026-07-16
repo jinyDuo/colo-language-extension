@@ -4,10 +4,6 @@ import { getAccessTokenFromServiceAccountJson } from '../sheet-api/googleAuth';
 import { fetchDictionaryFromJsonUrl } from '../sheet-api/jsonFetcher';
 import { fetchMultipleSheetsByApi } from '../sheet-api/multiSheetFetcher';
 import { fetchAllSheetNames } from '../sheet-api/sheetListFetcher';
-import {
-	resolveJapaneseLanguageCodeFromSetting,
-	type JapaneseSheetLanguageCode
-} from '../../shared/language-dictionary/constants/sheetLanguageCodes';
 import { DEFAULT_TARGET_SHEET_NAMES } from '../../shared/sheet-data/constants';
 import type { LanguageDictionary } from '../../shared/language-dictionary/types';
 import type { SheetTabFetchSummary, SheetsCredential } from '../../shared/sheet-data/types';
@@ -126,13 +122,10 @@ const saveDictionaryAndShowMessage = async (
 	context: vscode.ExtensionContext,
 	csvData: string,
 	method: string,
-	expectedJapaneseColumn: JapaneseSheetLanguageCode,
 	syncOptions?: SyncLanguageDataOptions,
 	sheetTabFetchSummaries?: SheetTabFetchSummary[]
 ): Promise<LanguageDictionary> => {
-	const freshDictionary = await parseCsvToDictionary(csvData, {
-		expectedJapaneseColumn
-	});
+	const freshDictionary = await parseCsvToDictionary(csvData);
 	await persistDictionaryAndNotify(
 		context,
 		freshDictionary,
@@ -211,10 +204,6 @@ export const syncLanguageData = async (
 		return languageDictionary;
 	}
 
-	const expectedJapaneseColumn = resolveJapaneseLanguageCodeFromSetting(
-		config.get<string>('japaneseLanguageCode')
-	);
-
 	let isLangDataResetForRemoteFetch = false;
 
 	try {
@@ -245,7 +234,6 @@ export const syncLanguageData = async (
 				context,
 				csvData,
 				method,
-				expectedJapaneseColumn,
 				syncOptions,
 				sheetTabFetchSummaries
 			);
@@ -254,9 +242,7 @@ export const syncLanguageData = async (
 		if (sheetJsonUrl?.trim()) {
 			await resetLangDataGlobalState(context);
 			isLangDataResetForRemoteFetch = true;
-			const freshDictionary = await fetchDictionaryFromJsonUrl(sheetJsonUrl, {
-				expectedJapaneseColumn
-			});
+			const freshDictionary = await fetchDictionaryFromJsonUrl(sheetJsonUrl);
 			await persistDictionaryAndNotify(context, freshDictionary, 'JSON API', syncOptions);
 			return freshDictionary;
 		}
@@ -268,13 +254,7 @@ export const syncLanguageData = async (
 		await resetLangDataGlobalState(context);
 		isLangDataResetForRemoteFetch = true;
 		const csvData = await fetchCsvDataByUrl(trimmedCsvUrl);
-		return await saveDictionaryAndShowMessage(
-			context,
-			csvData,
-			'CSV URL',
-			expectedJapaneseColumn,
-			syncOptions
-		);
+		return await saveDictionaryAndShowMessage(context, csvData, 'CSV URL', syncOptions);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
 		const fullMessage = `데이터를 가져오는데 실패했습니다: ${errorMessage}`;

@@ -6,6 +6,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+- 설정 **`languageHelper.japaneseLanguageCode`** (`ja`/`jp` 드롭다운) 제거. 일본어 열·필드는 항상 **`ja`** 고정.
+
 ## [0.0.27]
 
 - **JSON 보내기(Export)**: 실행 시 **Sheet Connect Sync와 동일한** 원격 가져오기·검증·파싱·`globalState` 저장을 한 번 수행한 뒤, 그 스냅샷만 워크스페이스 JSON에 기록. 가져오기 실패 시 **JSON 파일은 쓰지 않음**(경고만 표시; 상세 오류는 동기화와 동일하게 표시).

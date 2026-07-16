@@ -46,28 +46,12 @@
           "markdownDescription": "**English:** If enabled, translations will be displayed inline next to the code (e.g., `WD123 → English text`). If disabled, translations will only appear on hover. If hints do not appear, ensure **Editor: Inlay Hints** is set to `on` in VS Code settings.\n\n**한국어:** 활성화하면 코드 옆에 인라인으로 번역이 표시됩니다. 힌트가 안 보이면 VS Code 설정에서 **Editor: Inlay Hints** 를 `on` 으로 두세요.",
           "order": 2
         },
-        "languageHelper.japaneseLanguageCode": {
-          "type": "string",
-          "enum": [
-            "ja",
-            "jp"
-          ],
-          "enumDescriptions": [
-            "Use sheet column `ja` for Japanese / 시트·JSON의 일본어 열 이름은 `ja`",
-            "Use sheet column `jp` for Japanese / 시트·JSON의 일본어 열 이름은 `jp`"
-          ],
-          "default": "ja",
-          "description": "Japanese column: ja or jp (sheet must match) / 일본어 열 ja 또는 jp (시트와 일치 필요)",
-          "markdownDescription": "**English:** Choose `ja` or `jp`. The sheet or JSON **must** use that column name (at least one row with Japanese data must include it). Sync and JSON export store **only** that key. If the source has the wrong column, sync or export shows an error. Default is `ja`.\n\n**한국어:** `ja` 또는 `jp` 중 하나를 고릅니다. 시트·JSON에는 **선택한 이름의 열·필드**가 있어야 하며(일본어 데이터가 있는 행 기준), 동기화·JSON 보내기에는 **해당 키만** 저장됩니다. 열 이름이 맞지 않으면 동기화·보내기 시 오류가 납니다. 기본값은 `ja`입니다.",
-          "order": 3
-        },
         "languageHelper.inlineTranslationLanguage": {
           "type": "string",
           "enum": [
             "ko",
             "en",
             "ja",
-            "jp",
             "zh",
             "es",
             "fr",
@@ -79,8 +63,7 @@
           "enumDescriptions": [
             "Korean / 한국어",
             "English / 영어",
-            "Japanese (ja) / 일본어 (ja)",
-            "Japanese (jp) / 일본어 (jp)",
+            "Japanese / 일본어",
             "Chinese / 중국어",
             "Spanish / 스페인어",
             "French / 프랑스어",

@@ -1,7 +1,4 @@
-import {
-	DEFAULT_JAPANESE_LANGUAGE_CODE,
-	resolveSheetLanguageCodeItems
-} from '../constants/sheetLanguageCodes';
+import { SHEET_LANGUAGE_CODE_ITEMS } from '../constants/sheetLanguageCodes';
 import type { LanguageDictionary, LanguageEntry } from '../types';
 
 /** Lowercase column keys that appear in at least one row (sheet column union). */
@@ -39,9 +36,7 @@ const buildDeclaredLanguageEntry = (
  */
 export const filterLanguageDictionaryToDeclaredSheetLanguages = (
 	languageDictionary: LanguageDictionary,
-	allowedSheetLanguageCodes: readonly string[] = resolveSheetLanguageCodeItems(
-		DEFAULT_JAPANESE_LANGUAGE_CODE
-	)
+	allowedSheetLanguageCodes: readonly string[] = SHEET_LANGUAGE_CODE_ITEMS
 ): LanguageDictionary => {
 	const presentLowerItems = collectPresentSheetColumnKeysLower(languageDictionary);
 	const orderedExportCodes = allowedSheetLanguageCodes.filter((code) =>

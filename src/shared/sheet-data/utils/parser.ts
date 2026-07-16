@@ -1,13 +1,6 @@
 import type { ParseConfig, ParseResult } from 'papaparse';
 import { parse } from 'papaparse';
-import type { JapaneseSheetLanguageCode } from '../../language-dictionary/constants/sheetLanguageCodes';
 import type { LanguageDictionary } from '../../language-dictionary/types';
-import { assertExpectedJapaneseSheetColumnPresent } from '../../language-dictionary/utils/assertExpectedJapaneseSheetColumn';
-import { normalizeLanguageDictionaryFromSheet } from '../../language-dictionary/utils/normalizeLanguageDictionaryFromSheet';
-
-export type ParseCsvToDictionaryOptions = {
-	expectedJapaneseColumn: JapaneseSheetLanguageCode;
-};
 
 const hasCriticalErrors = (errors: ParseResult<any>['errors']): boolean => {
 	return errors.some(
@@ -56,8 +49,7 @@ const transformCellValue = (value: string): string => {
 
 const createParseCompleteHandler = (
 	resolve: (value: LanguageDictionary) => void,
-	reject: (reason?: any) => void,
-	options: ParseCsvToDictionaryOptions
+	reject: (reason?: any) => void
 ) => {
 	return (parseResults: ParseResult<any>): void => {
 		if (hasCriticalErrors(parseResults.errors)) {
@@ -65,32 +57,18 @@ const createParseCompleteHandler = (
 			return;
 		}
 
-		const rawDictionary = buildDictionaryFromRows(parseResults.data);
-		try {
-			assertExpectedJapaneseSheetColumnPresent(rawDictionary, options.expectedJapaneseColumn);
-		} catch (error) {
-			reject(error);
-			return;
-		}
-		const dictionary = normalizeLanguageDictionaryFromSheet(
-			rawDictionary,
-			options.expectedJapaneseColumn
-		);
-		resolve(dictionary);
+		resolve(buildDictionaryFromRows(parseResults.data));
 	};
 };
 
-export const parseCsvToDictionary = (
-	csvData: string,
-	options: ParseCsvToDictionaryOptions
-): Promise<LanguageDictionary> => {
+export const parseCsvToDictionary = (csvData: string): Promise<LanguageDictionary> => {
 	return new Promise((resolve, reject) => {
 		const config: ParseConfig<any> = {
 			header: true,
 			skipEmptyLines: 'greedy',
 			transformHeader: transformHeaderValue,
 			transform: transformCellValue,
-			complete: createParseCompleteHandler(resolve, reject, options)
+			complete: createParseCompleteHandler(resolve, reject)
 		};
 
 		parse(csvData, config);

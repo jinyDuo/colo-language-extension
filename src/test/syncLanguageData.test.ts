@@ -11,8 +11,7 @@ const CONFIG_KEYS_FOR_SYNC_JSON_URL = [
 	'sheetApiKey',
 	'sheetId',
 	'sheetJsonUrl',
-	'sheetUrl',
-	'japaneseLanguageCode'
+	'sheetUrl'
 ] as const;
 
 const readLanguageHelperSnapshot = (): Map<string, unknown> => {
@@ -62,7 +61,6 @@ suite('syncLanguageData — Export와 동일한 시트 반영 파이프라인', 
 				vscode.ConfigurationTarget.Global
 			);
 			await config.update('sheetUrl', '', vscode.ConfigurationTarget.Global);
-			await config.update('japaneseLanguageCode', 'ja', vscode.ConfigurationTarget.Global);
 
 			const expectedFromRemote: LanguageDictionary = {
 				WD_EXPORT_TEST: { ko: '시트반영', en: 'FromSheet', ja: 'シート' }

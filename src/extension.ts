@@ -52,14 +52,6 @@ export const activate = (context: vscode.ExtensionContext): void => {
 		}
 	};
 
-	const handleExportWorkspaceJsonCommand = (): void => {
-		languageDictionary = context.globalState.get<LanguageDictionary>('langData', languageDictionary);
-		exportLanguageDictionaryToWorkspaceJson(languageDictionary).catch((error: unknown) => {
-			const message = error instanceof Error ? error.message : '알 수 없는 오류';
-			vscode.window.showErrorMessage(`JSON 저장 실패: ${message}`);
-		});
-	};
-
 	const handleProvideHover = (
 		document: vscode.TextDocument,
 		position: vscode.Position

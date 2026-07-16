@@ -5,19 +5,13 @@ import {
 	mergeDictionaryFromPrefixBuckets,
 	splitDictionaryByConfiguredSheetPrefixes
 } from '../../shared/language-dictionary/utils/languageDictionaryExportBuckets';
-import {
-	resolveJapaneseLanguageCodeFromSetting,
-	resolveSheetLanguageCodeItems
-} from '../../shared/language-dictionary/constants/sheetLanguageCodes';
-import { assertExpectedJapaneseSheetColumnPresent } from '../../shared/language-dictionary/utils/assertExpectedJapaneseSheetColumn';
+import { SHEET_LANGUAGE_CODE_ITEMS } from '../../shared/language-dictionary/constants/sheetLanguageCodes';
 import { filterLanguageDictionaryToDeclaredSheetLanguages } from '../../shared/language-dictionary/utils/filterLanguageDictionaryToDeclaredSheetLanguages';
-import { normalizeLanguageDictionaryFromSheet } from '../../shared/language-dictionary/utils/normalizeLanguageDictionaryFromSheet';
 import { parseWorkspaceExportPathSegments } from '../../shared/workspace-export/utils/workspaceExportPath';
 
 const ALL_LANGUAGE_FILE_NAME = 'all_language.json';
 
 const CONFIG_EXPORT_PATH_KEY = 'workspaceExportJsonPath';
-const CONFIG_JAPANESE_LANGUAGE_CODE_KEY = 'japaneseLanguageCode';
 
 const resolveExportDirectoryUri = async (
 	workspaceRootUri: vscode.Uri,
@@ -91,28 +85,14 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 	}
 
 	const targetSheetNamesConfig = config.get<string>('targetSheetNames', '');
-	const preferredJapanese = resolveJapaneseLanguageCodeFromSetting(
-		config.get<string>(CONFIG_JAPANESE_LANGUAGE_CODE_KEY)
-	);
-	const sheetLanguageCodeItems = resolveSheetLanguageCodeItems(preferredJapanese);
 	const { prefixBucketItems } = splitDictionaryByConfiguredSheetPrefixes(
 		languageDictionary,
 		targetSheetNamesConfig
 	);
 	const mergedForExport = mergeDictionaryFromPrefixBuckets(prefixBucketItems);
-	try {
-		assertExpectedJapaneseSheetColumnPresent(mergedForExport, preferredJapanese);
-	} catch (error) {
-		const message =
-			error instanceof Error
-				? error.message
-				: 'JSON 보내기: 일본어 열 설정과 데이터가 맞지 않습니다.';
-		vscode.window.showErrorMessage(message);
-		return;
-	}
 	const allLanguageDictionary = filterLanguageDictionaryToDeclaredSheetLanguages(
-		normalizeLanguageDictionaryFromSheet(mergedForExport, preferredJapanese),
-		sheetLanguageCodeItems
+		mergedForExport,
+		SHEET_LANGUAGE_CODE_ITEMS
 	);
 	const matchedKeyCount = Object.keys(allLanguageDictionary).length;
 
@@ -149,8 +129,8 @@ export const exportLanguageDictionaryToWorkspaceJson = async (
 		}
 		const fileName = buildExportFileNameFromSheetPrefix(sheetPrefix);
 		const exportDictionary = filterLanguageDictionaryToDeclaredSheetLanguages(
-			normalizeLanguageDictionaryFromSheet(dictionary, preferredJapanese),
-			sheetLanguageCodeItems
+			dictionary,
+			SHEET_LANGUAGE_CODE_ITEMS
 		);
 		await writeJsonFile(exportDirectoryUri, fileName, exportDictionary, textEncoder);
 		writtenSummaryItems.push(`${exportPathDisplay}/${fileName} (${partialKeyCount}개)`);
