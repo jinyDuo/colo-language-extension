@@ -1,8 +1,16 @@
 import axios from 'axios';
-import type { LanguageDictionary, LanguageEntry } from '../../shared/types';
+import type { JapaneseSheetLanguageCode } from '../../shared/language-dictionary/constants/sheetLanguageCodes';
+import type { LanguageDictionary, LanguageEntry } from '../../shared/language-dictionary/types';
+import { assertExpectedJapaneseSheetColumnPresent } from '../../shared/language-dictionary/utils/assertExpectedJapaneseSheetColumn';
+import { normalizeLanguageDictionaryFromSheet } from '../../shared/language-dictionary/utils/normalizeLanguageDictionaryFromSheet';
+import { normalizeAndValidateUrl } from '../../shared/http-url/utils/urlHelper';
 import { handleApiError } from './errorHandler';
 
 const KEY_FIELD_LOWER = 'key';
+
+export type ParseJsonToDictionaryOptions = {
+	expectedJapaneseColumn: JapaneseSheetLanguageCode;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -47,26 +55,35 @@ const parseObjectFormat = (data: Record<string, unknown>): LanguageDictionary =>
 	return dictionary;
 };
 
-export const parseJsonToDictionary = (data: unknown): LanguageDictionary => {
+export const parseJsonToDictionary = (
+	data: unknown,
+	options: ParseJsonToDictionaryOptions
+): LanguageDictionary => {
+	let parsed: LanguageDictionary;
 	if (Array.isArray(data)) {
-		return parseArrayFormat(data);
+		parsed = parseArrayFormat(data);
+	} else if (isRecord(data)) {
+		parsed = parseObjectFormat(data);
+	} else {
+		throw new Error('JSON 응답은 배열 또는 객체 형태여야 합니다.');
 	}
-	if (isRecord(data)) {
-		return parseObjectFormat(data);
-	}
-	throw new Error('JSON 응답은 배열 또는 객체 형태여야 합니다.');
+	assertExpectedJapaneseSheetColumnPresent(parsed, options.expectedJapaneseColumn);
+	return normalizeLanguageDictionaryFromSheet(parsed, options.expectedJapaneseColumn);
 };
 
 export const fetchDictionaryFromJsonUrl = async (
-	url: string
+	url: string,
+	options: ParseJsonToDictionaryOptions
 ): Promise<LanguageDictionary> => {
 	if (!url || url.trim() === '') {
 		throw new Error('JSON API URL을 입력해주세요.');
 	}
 
+	const validUrl = normalizeAndValidateUrl(url);
+
 	try {
-		const response = await axios.get<unknown>(url.trim());
-		return parseJsonToDictionary(response.data);
+		const response = await axios.get<unknown>(validUrl);
+		return parseJsonToDictionary(response.data, options);
 	} catch (error) {
 		throw handleApiError(error);
 	}

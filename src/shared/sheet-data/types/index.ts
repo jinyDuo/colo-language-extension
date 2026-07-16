@@ -1,7 +1,3 @@
-export type LanguageEntry = Record<string, string>;
-
-export type LanguageDictionary = Record<string, LanguageEntry>;
-
 export type GoogleSheetsApiResponse = {
 	values: string[][];
 	error?: {
@@ -14,3 +10,10 @@ export type GoogleSheetsApiResponse = {
 export type SheetsCredential =
 	| { type: 'apiKey'; apiKey: string }
 	| { type: 'oauth'; accessToken: string };
+
+/** Per-tab stats when merging multiple Google Sheet tabs into one CSV for sync. */
+export type SheetTabFetchSummary = {
+	sheetTitle: string;
+	dataRowCount: number;
+	nonEmptyKeyRowCount: number;
+};

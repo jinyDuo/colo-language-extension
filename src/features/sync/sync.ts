@@ -4,11 +4,16 @@ import { getAccessTokenFromServiceAccountJson } from '../sheet-api/googleAuth';
 import { fetchDictionaryFromJsonUrl } from '../sheet-api/jsonFetcher';
 import { fetchMultipleSheetsByApi } from '../sheet-api/multiSheetFetcher';
 import { fetchAllSheetNames } from '../sheet-api/sheetListFetcher';
-import { DEFAULT_TARGET_SHEET_NAMES } from '../../shared/constants';
-import type { LanguageDictionary, SheetsCredential } from '../../shared/types';
-import { parseCsvToDictionary } from '../../shared/utils/parser';
-import { extractSheetIdFromUrl } from '../../shared/utils/sheetIdExtractor';
-import { parseSheetNames } from '../../shared/utils/sheetNameParser';
+import {
+	resolveJapaneseLanguageCodeFromSetting,
+	type JapaneseSheetLanguageCode
+} from '../../shared/language-dictionary/constants/sheetLanguageCodes';
+import { DEFAULT_TARGET_SHEET_NAMES } from '../../shared/sheet-data/constants';
+import type { LanguageDictionary } from '../../shared/language-dictionary/types';
+import type { SheetTabFetchSummary, SheetsCredential } from '../../shared/sheet-data/types';
+import { parseCsvToDictionary } from '../../shared/sheet-data/utils/parser';
+import { extractSheetIdFromUrl } from '../../shared/sheet-data/utils/sheetIdExtractor';
+import { parseSheetNames } from '../../shared/sheet-data/utils/sheetNameParser';
 
 const resolveSheetId = (
 	sheetId: string | undefined,
@@ -34,12 +39,17 @@ const resolveSheetId = (
 	return undefined;
 };
 
+type FetchCsvByApiResult = {
+	csvData: string;
+	sheetTabFetchSummaries: SheetTabFetchSummary[];
+};
+
 const fetchCsvDataByApi = async (
 	credential: SheetsCredential,
 	finalSheetId: string,
 	isAllSheetNames: boolean,
 	targetSheetNamesConfig: string
-): Promise<string> => {
+): Promise<FetchCsvByApiResult> => {
 	if (isAllSheetNames) {
 		const sheetNames = await fetchAllSheetNames(credential, finalSheetId);
 
@@ -47,7 +57,12 @@ const fetchCsvDataByApi = async (
 			throw new Error('가져올 시트가 없습니다.');
 		}
 
-		return await fetchMultipleSheetsByApi(credential, finalSheetId, sheetNames);
+		const { mergedCsv, sheetTabFetchSummaries } = await fetchMultipleSheetsByApi(
+			credential,
+			finalSheetId,
+			sheetNames
+		);
+		return { csvData: mergedCsv, sheetTabFetchSummaries };
 	}
 
 	const sheetNames = parseSheetNames(targetSheetNamesConfig);
@@ -58,7 +73,12 @@ const fetchCsvDataByApi = async (
 		);
 	}
 
-	return await fetchMultipleSheetsByApi(credential, finalSheetId, sheetNames);
+	const { mergedCsv, sheetTabFetchSummaries } = await fetchMultipleSheetsByApi(
+		credential,
+		finalSheetId,
+		sheetNames
+	);
+	return { csvData: mergedCsv, sheetTabFetchSummaries };
 };
 
 const fetchCsvDataByUrl = async (sheetUrl: string): Promise<string> => {
@@ -75,7 +95,7 @@ const fetchCsvDataBySheetsApi = async (
 	sheetUrl: string | undefined,
 	isAllSheetNames: boolean,
 	targetSheetNamesConfig: string
-): Promise<string> => {
+): Promise<FetchCsvByApiResult> => {
 	const finalSheetId = resolveSheetId(sheetId, sheetUrl);
 
 	if (!finalSheetId) {
@@ -92,13 +112,34 @@ const fetchCsvDataBySheetsApi = async (
 	);
 };
 
+export type SyncLanguageDataOptions = {
+	/**
+	 * When true: no green “동기화 완료” toast, and no toast for missing remote config / incomplete API setup
+	 * (used when Export runs the same fetch pipeline immediately before writing JSON).
+	 */
+	suppressSuccessToast?: boolean;
+	/** When true, rethrow after logging so callers (e.g. Export) can abort instead of writing stale JSON. */
+	throwOnFetchFailure?: boolean;
+};
+
 const saveDictionaryAndShowMessage = async (
 	context: vscode.ExtensionContext,
 	csvData: string,
-	method: string
+	method: string,
+	expectedJapaneseColumn: JapaneseSheetLanguageCode,
+	syncOptions?: SyncLanguageDataOptions,
+	sheetTabFetchSummaries?: SheetTabFetchSummary[]
 ): Promise<LanguageDictionary> => {
-	const freshDictionary = await parseCsvToDictionary(csvData);
-	await persistDictionaryAndNotify(context, freshDictionary, method);
+	const freshDictionary = await parseCsvToDictionary(csvData, {
+		expectedJapaneseColumn
+	});
+	await persistDictionaryAndNotify(
+		context,
+		freshDictionary,
+		method,
+		syncOptions,
+		sheetTabFetchSummaries
+	);
 	return freshDictionary;
 };
 
@@ -108,25 +149,47 @@ const getOutputChannel = (): vscode.OutputChannel => {
 	return vscode.window.createOutputChannel(OUTPUT_CHANNEL_NAME);
 };
 
+const resetLangDataGlobalState = async (context: vscode.ExtensionContext): Promise<void> => {
+	await context.globalState.update('langData', {});
+};
+
+const emitSyncLogLine = (outputChannel: vscode.OutputChannel, line: string): void => {
+	outputChannel.appendLine(line);
+	console.log(line);
+};
+
 const persistDictionaryAndNotify = async (
 	context: vscode.ExtensionContext,
 	freshDictionary: LanguageDictionary,
-	method: string
+	method: string,
+	syncOptions?: SyncLanguageDataOptions,
+	sheetTabFetchSummaries?: SheetTabFetchSummary[]
 ): Promise<void> => {
 	await context.globalState.update('langData', freshDictionary);
 	const entryCount = Object.keys(freshDictionary).length;
 	const successMessage = `동기화 완료! (${entryCount}개 데이터, ${method} 사용)`;
 
-	vscode.window.showInformationMessage(successMessage);
+	if (!syncOptions?.suppressSuccessToast) {
+		vscode.window.showInformationMessage(successMessage);
+	}
 
 	const outputChannel = getOutputChannel();
-	outputChannel.appendLine(`[${new Date().toISOString()}] ${successMessage}`);
+	emitSyncLogLine(outputChannel, `[${new Date().toISOString()}] ${successMessage}`);
+	if (sheetTabFetchSummaries && sheetTabFetchSummaries.length > 0) {
+		for (const summary of sheetTabFetchSummaries) {
+			emitSyncLogLine(
+				outputChannel,
+				`  · 탭 "${summary.sheetTitle}": 본문 행 ${summary.dataRowCount}행, A열(첫 열) 값 있는 행 ${summary.nonEmptyKeyRowCount}행`
+			);
+		}
+	}
 	outputChannel.show();
 };
 
 export const syncLanguageData = async (
 	context: vscode.ExtensionContext,
-	languageDictionary: LanguageDictionary
+	languageDictionary: LanguageDictionary,
+	syncOptions?: SyncLanguageDataOptions
 ): Promise<LanguageDictionary> => {
 	const config = vscode.workspace.getConfiguration('languageHelper');
 	const sheetServiceAccountJson = config.get<string>('sheetServiceAccountJson');
@@ -140,11 +203,19 @@ export const syncLanguageData = async (
 	const useSheetsApi = (sheetServiceAccountJson?.trim() ?? '') !== '' || (sheetApiKey?.trim() ?? '') !== '';
 
 	if (!useSheetsApi && !sheetJsonUrl && !sheetUrl) {
-		vscode.window.showErrorMessage(
-			'설정창에서 서비스 계정 JSON, 구글 시트 API 키, JSON API URL, 또는 CSV URL 중 하나를 입력해주세요!'
-		);
+		if (!syncOptions?.suppressSuccessToast) {
+			vscode.window.showErrorMessage(
+				'설정창에서 서비스 계정 JSON, 구글 시트 API 키, JSON API URL, 또는 CSV URL 중 하나를 입력해주세요!'
+			);
+		}
 		return languageDictionary;
 	}
+
+	const expectedJapaneseColumn = resolveJapaneseLanguageCodeFromSetting(
+		config.get<string>('japaneseLanguageCode')
+	);
+
+	let isLangDataResetForRemoteFetch = false;
 
 	try {
 		if (useSheetsApi) {
@@ -155,10 +226,14 @@ export const syncLanguageData = async (
 			} else if (sheetApiKey?.trim()) {
 				credential = { type: 'apiKey', apiKey: sheetApiKey.trim() };
 			} else {
-				vscode.window.showErrorMessage('서비스 계정 JSON 또는 API 키를 입력해주세요.');
+				if (!syncOptions?.suppressSuccessToast) {
+					vscode.window.showErrorMessage('서비스 계정 JSON 또는 API 키를 입력해주세요.');
+				}
 				return languageDictionary;
 			}
-			const csvData = await fetchCsvDataBySheetsApi(
+			await resetLangDataGlobalState(context);
+			isLangDataResetForRemoteFetch = true;
+			const { csvData, sheetTabFetchSummaries } = await fetchCsvDataBySheetsApi(
 				credential,
 				sheetId,
 				sheetUrl,
@@ -166,17 +241,40 @@ export const syncLanguageData = async (
 				targetSheetNamesConfig
 			);
 			const method = credential.type === 'oauth' ? '서비스 계정' : 'API';
-			return await saveDictionaryAndShowMessage(context, csvData, method);
+			return await saveDictionaryAndShowMessage(
+				context,
+				csvData,
+				method,
+				expectedJapaneseColumn,
+				syncOptions,
+				sheetTabFetchSummaries
+			);
 		}
 
 		if (sheetJsonUrl?.trim()) {
-			const freshDictionary = await fetchDictionaryFromJsonUrl(sheetJsonUrl);
-			await persistDictionaryAndNotify(context, freshDictionary, 'JSON API');
+			await resetLangDataGlobalState(context);
+			isLangDataResetForRemoteFetch = true;
+			const freshDictionary = await fetchDictionaryFromJsonUrl(sheetJsonUrl, {
+				expectedJapaneseColumn
+			});
+			await persistDictionaryAndNotify(context, freshDictionary, 'JSON API', syncOptions);
 			return freshDictionary;
 		}
 
-		const csvData = await fetchCsvDataByUrl(sheetUrl || '');
-		return await saveDictionaryAndShowMessage(context, csvData, 'CSV URL');
+		const trimmedCsvUrl = (sheetUrl ?? '').trim();
+		if (!trimmedCsvUrl) {
+			throw new Error('CSV URL을 입력해주세요!');
+		}
+		await resetLangDataGlobalState(context);
+		isLangDataResetForRemoteFetch = true;
+		const csvData = await fetchCsvDataByUrl(trimmedCsvUrl);
+		return await saveDictionaryAndShowMessage(
+			context,
+			csvData,
+			'CSV URL',
+			expectedJapaneseColumn,
+			syncOptions
+		);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
 		const fullMessage = `데이터를 가져오는데 실패했습니다: ${errorMessage}`;
@@ -187,6 +285,10 @@ export const syncLanguageData = async (
 		outputChannel.appendLine(`[${new Date().toISOString()}] ❌ ${fullMessage}`);
 		outputChannel.show();
 
-		return languageDictionary;
+		if (syncOptions?.throwOnFetchFailure) {
+			throw error instanceof Error ? error : new Error(String(error));
+		}
+
+		return isLangDataResetForRemoteFetch ? {} : languageDictionary;
 	}
 };

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { SheetsCredential } from '../../shared/types';
+import type { SheetsCredential } from '../../shared/sheet-data/types';
 import { handleApiError } from './errorHandler';
 
 type SheetInfo = {

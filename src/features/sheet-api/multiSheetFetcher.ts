@@ -1,6 +1,10 @@
 import axios from 'axios';
-import type { GoogleSheetsApiResponse, SheetsCredential } from '../../shared/types';
-import { padRowToMatchHeader, rowToCsvLine } from '../../shared/utils/csvHelper';
+import type {
+	GoogleSheetsApiResponse,
+	SheetTabFetchSummary,
+	SheetsCredential
+} from '../../shared/sheet-data/types';
+import { padRowToMatchHeader, rowToCsvLine } from '../../shared/sheet-data/utils/csvHelper';
 import { createSheetError } from './errorHandler';
 
 const buildSheetsRequestConfig = (credential: SheetsCredential) => {
@@ -39,6 +43,14 @@ const fetchSingleSheet = async (
 	}
 };
 
+const countDataRowsWithNonEmptyFirstCell = (rows: string[][]): number => {
+	if (rows.length <= 1) {
+		return 0;
+	}
+	const dataRows = rows.slice(1);
+	return dataRows.filter((row) => (row[0] ?? '').trim() !== '').length;
+};
+
 const processSheetRows = (
 	rows: string[][],
 	headerRow: string[] | null,
@@ -65,21 +77,34 @@ const processSheetRows = (
 	return newHeaderRow;
 };
 
+export type FetchMultipleSheetsResult = {
+	mergedCsv: string;
+	sheetTabFetchSummaries: SheetTabFetchSummary[];
+};
+
 export const fetchMultipleSheetsByApi = async (
 	credential: SheetsCredential,
 	sheetId: string,
 	sheetNames: string[]
-): Promise<string> => {
+): Promise<FetchMultipleSheetsResult> => {
 	if (sheetNames.length === 0) {
 		throw new Error('시트 이름 목록이 비어있습니다.');
 	}
 
 	const allRows: string[][] = [];
 	let headerRow: string[] | null = null;
+	const sheetTabFetchSummaries: SheetTabFetchSummary[] = [];
 
 	for (const sheetName of sheetNames) {
 		try {
 			const rows = await fetchSingleSheet(credential, sheetId, sheetName);
+			const dataRowCount = Math.max(0, rows.length - 1);
+			const nonEmptyKeyRowCount = countDataRowsWithNonEmptyFirstCell(rows);
+			sheetTabFetchSummaries.push({
+				sheetTitle: sheetName,
+				dataRowCount,
+				nonEmptyKeyRowCount
+			});
 			headerRow = processSheetRows(rows, headerRow, allRows);
 		} catch (error) {
 			throw createSheetError(sheetName, error);
@@ -91,5 +116,8 @@ export const fetchMultipleSheetsByApi = async (
 	}
 
 	const csvLines: string[] = allRows.map(rowToCsvLine);
-	return csvLines.join('\n');
+	return {
+		mergedCsv: csvLines.join('\n'),
+		sheetTabFetchSummaries
+	};
 };

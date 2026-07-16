@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { DEFAULT_INLINE_TRANSLATION_LANGUAGE, KOREAN_CHARACTER_PATTERN, STRING_LITERAL_PATTERN, TRANSLATION_FUNCTION_PATTERN } from '../../shared/constants';
-import type { LanguageDictionary, LanguageEntry } from '../../shared/types';
-import { getCodePattern } from '../../shared/utils/codePatternHelper';
+import { DEFAULT_INLINE_TRANSLATION_LANGUAGE, KOREAN_CHARACTER_PATTERN, STRING_LITERAL_PATTERN, TRANSLATION_FUNCTION_PATTERN } from '../../shared/code-inspection/constants';
+import type { LanguageDictionary, LanguageEntry } from '../../shared/language-dictionary/types';
+import { getCodePattern } from '../../shared/code-inspection/utils/codePatternHelper';
 
 type CodeMatchItem = {
 	code: string;

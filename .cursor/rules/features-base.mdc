@@ -23,9 +23,20 @@ src/
     inline-hints/           # 인라인 번역 힌트
     sync/                   # 동기화 명령 및 플로우
   shared/
-    constants/
-    types/
-    utils/
+    language-dictionary/   # 다국어 사전 타입·보내기 버킷
+      types/
+      utils/
+    sheet-data/            # 시트 CSV·ID·이름 파싱, API 타입·기본 시트 접두
+      types/
+      constants/
+      utils/
+    code-inspection/       # 호버·인라인용 코드 패턴·마크다운
+      constants/
+      utils/
+    http-url/              # URL 정규화
+      utils/
+    workspace-export/      # 워크스페이스 JSON 경로 파싱
+      utils/
   test/
 ```
 
@@ -38,9 +49,9 @@ src/
 
 ## shared/ 규칙
 
-- **constants**: 전역 상수
-- **types**: 전역 타입·인터페이스
-- **utils**: 도메인 무관 유틸 (파서, CSV, 패턴, URL 추출 등)
+- **기능(도메인) 단위 하위 폴더**로만 둔다 (`language-dictionary`, `sheet-data`, `code-inspection` 등).
+- 각 도메인 안에 필요한 **types**, **constants**, **utils** 를 둔다. 평탄한 `shared/utils` 단일 폴더는 쓰지 않는다.
+- **shared 도메인 간** 참조는 허용한다. **shared는 features를 import하지 않는다** (아래 import 규칙과 동일).
 - feature 전용 타입/유틸은 해당 feature 안에 둔다.
 
 ## import 규칙
